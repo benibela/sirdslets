@@ -3,7 +3,7 @@
 MKDIR = mkdir
 JAVAC = javac -d output
 
-CLASSES = ZDraw SIRDSlet SIRDSAppletManager SIRDSApplets AbSIRDlet
+CLASSES = ZDraw Floater SIRDSlet SIRDSAppletManager SIRDSApplets AbSIRDlet
 
 SUBCLASSES = $(CLASSES:%=output/%.class)
 

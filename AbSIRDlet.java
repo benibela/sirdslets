@@ -111,12 +111,20 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 	public void mouseMoved(MouseEvent e){}
 
 	public void keyPressed(KeyEvent e){
-		if (e.getKeyCode()==KeyEvent.VK_A) {
-			mCurrentZ+=1+ZDraw.MAXZ/50;
-			if (mCurrentZ>ZDraw.MAXZ) mCurrentZ=ZDraw.MAXZ;
-		} else if (e.getKeyCode()==KeyEvent.VK_S) {
-			mCurrentZ-=1+ZDraw.MAXZ/50;
-			if (mCurrentZ<0) mCurrentZ=0;
+		switch (e.getKeyCode()){
+			case KeyEvent.VK_A:			
+				mCurrentZ+=1+ZDraw.MAXZ/50;
+				if (mCurrentZ>ZDraw.MAXZ) mCurrentZ=ZDraw.MAXZ;
+				break;
+			case KeyEvent.VK_S:
+				mCurrentZ-=1+ZDraw.MAXZ/50;
+				if (mCurrentZ<0) mCurrentZ=0;
+				break;
+			case KeyEvent.VK_SPACE:
+				for (int x=mLastMX-10;x<mLastMX+10;x++)
+					for (int y=mLastMY-10;y<mLastMY+10;y++)
+						mDrawArea.data[mDrawArea.start+x+(y*mDrawArea.stride)]|=0xFF0000<<8;
+				break;
 		}
 	}
 	public void keyReleased(KeyEvent e){

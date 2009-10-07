@@ -14,10 +14,7 @@
 // mirror for leweyg: http://www.lewcid.com/download/SIRD/index.html
 
 import java.util.*;
-import java.awt.image.*; //images
-import java.io.*; //images
-import javax.imageio.*; //images
-import java.net.*;
+import java.awt.image.*; 
 
 public class ZDraw
 {
@@ -183,22 +180,7 @@ public class ZDraw
 		return ans;
 	}
 	
-	public static int[] GetImageSIRDData(URL baseUrl, String name){
-		try {
-			return GetImageSIRDData(new URL(baseUrl,name));
-		} catch (java.net.MalformedURLException e){
-		}
-		return GetRandSIRDData();
-	}
-	public static int[] GetImageSIRDData(URL url){
-		BufferedImage img = null;
-		try {
-			//img = ImageIO.read(new File(fileName));
-			img = ImageIO.read(url);
-			//URL url = new URL(getCodeBase(), "strawberry.jpg");
-		} catch (IOException e) {
-		}
-		
+	public static int[] GetImageSIRDData(BufferedImage img){
 		if (img==null || img.getWidth()<SIRDW || img.getHeight() < SIRDH) return GetRandSIRDData();
 		int [] data=new int[SIRDW*SIRDH];
 		img.getRGB(0, 0, SIRDW, SIRDH, data, 0, img.getWidth());
@@ -226,11 +208,11 @@ public class ZDraw
 			//if (b+w>rlen) b-=rlen;
 			for (x=0; x<SIRDW; x++)
 			{
-				to[b+x] = 0xff000000 + randdata[(x+rb)%rlen];
+				to[b+x] = 0xff000000 | randdata[(x+rb)%rlen];
 			}
 			for (x=SIRDW; x<w; x++)
 			{
-				to[b+x] = to[b+x-SIRDW+data[b+x]];
+				to[b+x] = to[b+x-SIRDW+data[b+x]];			
 			}
 		}
 	}

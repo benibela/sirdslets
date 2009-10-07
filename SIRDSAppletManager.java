@@ -9,6 +9,8 @@ import java.awt.image.*;
 import java.applet.*;
 import java.util.*;
 import java.awt.*;
+import java.io.*; 
+import javax.imageio.*; 
 import java.net.*;
 
 		
@@ -26,6 +28,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private SIRDSAppletManager self; //=this, but also usable in anonymous sub classes
 	
 	private ArrayList<SIRDSlet> sirdslets=new ArrayList<SIRDSlet>();
+		
+	protected ArrayList<Floater> floaters = new ArrayList<Floater>();
 		
 	//sird id: (.*)\.png => load (\1).png
 	//          .*random.* => random (checks for "color" and "strid")
@@ -46,7 +50,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	}
 	private int[] singleSIRDData(String id){
 		if (id.endsWith(".png")) 
-			return ZDraw.GetImageSIRDData(getCodeBase(), id); 
+			return ZDraw.GetImageSIRDData(loadImage(id)); 
 		if (id.contains("random")){
 			int c = str2Color(id.substring(0,id.indexOf(" ")));
 			return ZDraw.GetRandSIRDData(id.contains("color"), id.contains("strid"), c!=0?c:0xffffffff);
@@ -178,7 +182,18 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			}});
 		optionPanel.add(showFPS);
 
-		optionPanel.add(new Label(""));
+		final Button freeze=new Button("freeze");
+		freeze.addActionListener(new ActionListener(){ 
+			public void actionPerformed(ActionEvent e){
+				if (freeze.getLabel()=="freeze"){
+					freeze.setLabel("continue");
+					self.mUpdateThread.suspend();
+				} else {
+					freeze.setLabel("freeze");
+					self.mUpdateThread.resume();
+				}
+			}});
+		optionPanel.add(freeze);
 		Button close=new Button("close");
 		close.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
@@ -226,6 +241,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		
 		timePerFrame=40; 
 		
+		//floaters.add(loadFloater("test.png"));
+		floaters.add(createTextFloater("test.png"));
 	}
 
 	
@@ -255,6 +272,10 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		else if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData2, mFrameNumber);
 		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mFrameNumber);
 		
+		for (Floater f: floaters){	
+			f.draw(mSIRDPixels.data, mZBuffer);
+		}
+		
 		mSIRDImage.newPixels();
 	}
 	
@@ -272,6 +293,10 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			long drawstart = System.currentTimeMillis();
 			updateSIRDImage();
 			mFrameNumber++;
+			//floaters.get(0).z=(floaters.get(0).z+1)%ZDraw.MAXZ;
+			floaters.get(0).x=(floaters.get(0).x+1)%mWidth;
+			floaters.get(0).y=(floaters.get(0).y+1)%mHeight;
+			//repaint();
 			getToolkit().sync();
 			try
 			{
@@ -330,5 +355,44 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	
 	public ZDraw getZBuffer(){
 		return mZBuffer;
+	}
+	
+	
+	//Graphic Utility Functions
+	public BufferedImage loadImage(String name){
+		return loadImage(getCodeBase(), name);
+	}
+	public static BufferedImage loadImage(URL baseUrl, String name){
+		try {
+			return loadImage(new URL(baseUrl,name));
+		} catch (java.net.MalformedURLException e){
+		}
+		return null;
+	}
+	public static BufferedImage loadImage(URL url){
+		BufferedImage img = null;
+		try {
+			//img = ImageIO.read(new File(fileName));
+			img = ImageIO.read(url);
+			//URL url = new URL(getCodeBase(), "strawberry.jpg");
+		} catch (IOException e) {
+		}
+		return img;
+	}
+	public Floater createFloater(String name){
+		Floater floater=new Floater();
+		BufferedImage img=loadImage(name);
+		floater.data=loadImage(name).getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth());
+		floater.w=img.getWidth();
+		floater.h=img.getHeight();
+		return floater;
+	}
+	public Floater createTextFloater(String text){
+		return createTextFloater(text,Color.BLACK);
+	}
+	public Floater createTextFloater(String text, Color c){
+		Floater floater=new Floater();
+		floater.setToString(text,getGraphics().getFontMetrics(getFont()), c);
+		return floater;
 	}
 }
