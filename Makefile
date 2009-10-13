@@ -1,16 +1,17 @@
 
 
 MKDIR = mkdir
-JAVAC = javac -d output
+#JAVAC = javac  -Xlint:deprecation -d output
+JAVAC = javac  -d output
 
-CLASSES = ZDraw Floater SIRDSlet SIRDSAppletManager SIRDSApplets AbSIRDlet
+CLASSES = IntArrayImage ZDraw ZSprite Floater SIRDSlet SIRDSAppletManager SIRDSApplets AbSIRDlet SIRDSFlighter
 
 SUBCLASSES = $(CLASSES:%=output/%.class)
 
+all: output $(SUBCLASSES)
+
 output:
 	$(MKDIR) output
-
-all: output $(SUBCLASSES)
 
 
 output/%.class:%.java

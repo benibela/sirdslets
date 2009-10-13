@@ -1,22 +1,22 @@
 import java.awt.*; //images
 import java.awt.image.*; //images
 
-public class Floater{
-	public int x,y,z,w,h;
-	public int[] data; //0xAARRGGBB 
-	public boolean visible;//, alphaTransparent; 
-	
+public class Floater extends IntArrayImage{
+	public int x,y,z;
+	public boolean visible=true;//, alphaTransparent; 
+	public boolean ignoreHeightmap=true;
+
 	Floater(){
-		visible=true;
+		setSize(0, 0);
+	}
+	Floater(int nw, int nh){
+		setSize(nw, nh);
 	}
 	
-	public void draw(int[] to, ZDraw hmap){
-		draw(to, hmap, true);
-	}
 	//set ignoreHeighmap to false to draw only the pixel of the floater which are actually
 	//visible => problem, SIRDS can't be partially visible=>you normally can still see the floater on 
 	//one (only one) eye
-	public void draw(int[] to, ZDraw hmap, boolean ignoreHeighmap){
+	public void draw(int[] to, ZDraw hmap){
 		if (!visible) 
 			return;
 		if (data.length!=w*h)
@@ -27,9 +27,9 @@ public class Floater{
 		for (int cy=0;cy<h;cy++){
 			if (y+cy<0) continue;
 			if (y+cy>=hmap.h) break;
-			int b=hmap.GetLineIndex(y+cy);
+			int b=hmap.getLineIndex(y+cy);
 			int bd=cy*w;
-			int offset=x % (SIRDW -z);
+			int offset=(x+z) % (SIRDW -z);
 			int cx=-offset;
 			while(cx+offset<hmap.w){
 				//to[b+cx] = data[bd+cx];
@@ -42,7 +42,7 @@ public class Floater{
 				int n=data[bd+ncx];
 				int alpha=n>>>24;
 				int malpha=0xff - alpha;
-				if (ignoreHeighmap || hmap.data[b+cx+offset]<=z)
+				if (ignoreHeightmap || hmap.data[b+cx+offset]<=z)
 				to[b+cx+offset] = 0xff000000 
 						   | (((malpha * ((o>>>16) & 0xff) + alpha*((n>>>16) & 0xff)) / 0xff) << 16)
 						   | (((malpha * ((o>>>8)  & 0xff) + alpha*((n>>> 8) & 0xff)) / 0xff) << 8)
@@ -52,6 +52,7 @@ public class Floater{
 		}
 	}
 	
+	//set to methods only change the data, not the position 	
 	public void setToImage(BufferedImage img){
 		w=img.getWidth();
 		h=img.getHeight();
@@ -67,5 +68,28 @@ public class Floater{
 		g.setColor(c);
 		g.drawString(text,0,h-fontMetric.getMaxDescent());
 		setToImage(temp);
+	}
+	
+	public void setToFloater(Floater f){
+		data = f.data;
+		w=f.w;
+		h=f.h;
+	}
+	
+	public void mergeColor(int o){
+		for (int i=0;i<data.length;i++){
+			int n=data[i];
+			int alpha=n >>> 24;
+			int malpha=0xff - alpha;
+			data[i] = 0xff000000 
+				| (((malpha * ((o>>>16) & 0xff) + alpha*((n>>>16) & 0xff)) / 0xff) << 16)
+				| (((malpha * ((o>>>8)  & 0xff) + alpha*((n>>> 8) & 0xff)) / 0xff) << 8)
+				|  ((malpha * (o       & 0xff) + alpha*(n       & 0xff)) / 0xff);
+		}
+	}
+
+	public void clear(){	
+		for (int i=0;i<w*h;i++)
+			data[i]=0;
 	}
 }

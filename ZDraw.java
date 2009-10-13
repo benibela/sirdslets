@@ -16,11 +16,8 @@
 import java.util.*;
 import java.awt.image.*; 
 
-public class ZDraw
+public class ZDraw extends IntArrayImage
 {
-	public int[] data;
-	public int w, h;
-	public int start, stride;
 	public boolean mIgnoreZ = false;
 
 	public static class Pnt
@@ -109,7 +106,7 @@ public class ZDraw
 			x = (((y - f.y)*dx)/dy) + f.x;
 			w = (((y - f.y)*dw)/dy) + fw;
 			z = (((y - f.y)*dz)/dy) + f.z;
-			b = GetLineIndex(y) + x;
+			b = getLineIndex(y) + x;
 			for (int i=0; i<w; i++)
 			{
 				data[b+i] = z;
@@ -122,10 +119,6 @@ public class ZDraw
 		return (start + x + (y*stride));
 	}
 	
-	public int GetLineIndex(int y)
-	{
-		return (start + (y*stride));
-	}
 
 	public ZDraw(int[] pxls, int width, int height, int strt, int strid)
 	{
@@ -138,11 +131,10 @@ public class ZDraw
 	
 	public ZDraw(int width, int height)
 	{
-		w = width;
-		h = height;
-		start = 0;
-		stride = w;
-		data = new int[w*h];
+		setSize(width, height);
+	}
+	
+	public ZDraw(){
 	}
 	
 	public final static int MAXZ = 20;
@@ -204,7 +196,7 @@ public class ZDraw
 		for (int y=0; y<h; y++)
 		{
 			rb = ((y+rvoff)%SIRDH)*SIRDW + roff;
-			b = GetLineIndex(y);
+			b = getLineIndex(y);
 			//if (b+w>rlen) b-=rlen;
 			for (x=0; x<SIRDW; x++)
 			{
@@ -217,31 +209,38 @@ public class ZDraw
 		}
 	}
 	
-	public void DrawHeightMapTo(int[] to)
+	public void drawHeightMapTo(int[] to)
 	{
 		int b;
 		for (int y=0; y<h; y++)
 		{
-			b = GetLineIndex(y);
+			b = getLineIndex(y);
 			for (int x=0; x<w; x++)
 			{
-				int v = data[b+x] << 2;
+				int v = data[b+x]*255 / MAXZ;
 				v = 0xff000000 | v | (v<<8) | (v<<16);
 				to[b+x] = v;
 			}
 		}
 	}
-	
-	public boolean InBounds(int x, int y)
-	{
-		return !((x < 0) || (x >= w) 
-			|| (y < 0) || (y >= h));
+
+	public void readHeightMapFrom(int[] from){
+		int b;
+		for (int y=0; y<h; y++)
+		{
+			b = getLineIndex(y);
+			for (int x=0; x<w; x++)
+			{
+				data[b+x]=(((from[b+x]&0xFF)+((from[b+x]&0xFF00)>>>8)+((from[b+x]&0xFF0000)>>>16))*MAXZ/3)/255;
+				if (data[b+x]<0) data[b+x]=0;
+				else if (data[b+x]>MAXZ) data[b+x]=MAXZ;
+			}
+		}
 	}
-	
-	private void SafePut(int at, int z)
-	{
-		if (mIgnoreZ || (data[at] < z))
-			data[at] = z;
+		
+	void customPut(int pos, int value){
+		if (mIgnoreZ || (data[pos] < value))
+			data[pos] = value;
 	}
 	
 	private void DrawThinLine(int x1, int y1, int x2, int y2, int z)
@@ -268,7 +267,7 @@ public class ZDraw
 			{
 				if (InBounds(x,y))
 				{
-					SafePut(start+x+(y*stride), z);
+					customPut(start+x+(y*stride), z);
 				}
 
 				i += sy;
@@ -285,7 +284,7 @@ public class ZDraw
 			{
 				if (InBounds(x,y))
 				{
-					SafePut(start+x+(y*stride), z);
+					customPut(start+x+(y*stride), z);
 				}
 
 				i += sx;
@@ -305,17 +304,17 @@ public class ZDraw
 			DrawThinLine(x1+i, y1, x2+i, y2, z);
 			DrawThinLine(x1, y1+i, x2, y2+i, z);
 		}
-		DrawCircle(x1, y1, r, z);
-		DrawCircle(x2, y2, r, z);
+		fillCircle(x1, y1, r, z);
+		fillCircle(x2, y2, r, z);
 	}
 	
-	public void DrawCircle(int x, int y, int r, int z)
+	/*public void DrawCircle(int x, int y, int r, int z)
 	{
 		int cr = r*r, cy;
 		int b;
 		for (int dy=-r; dy<=r; dy++)
 		{
-			b = GetLineIndex(y+dy);
+			b = getLineIndex(y+dy);
 			cy = dy*dy;
 			for (int dx=-r; dx<=r; dx++)
 			{
@@ -326,9 +325,9 @@ public class ZDraw
 				}
 			}
 		}
-	}
+	}*/
 	
-	public void DrawRect(int x, int y, int wd, int ht, int z)
+	public void fillRect(int x, int y, int wd, int ht, int z)
 	{
 		int b;
 		for (int dy=0; dy<ht; dy++)
@@ -341,16 +340,4 @@ public class ZDraw
 		}
 	}
 	
-	public void Clear()
-	{
-		int b;
-		for (int y=0; y<h; y++)
-		{
-			b = GetLineIndex(y);
-			for (int x=0; x<w; x++)
-			{
-				data[b+x] = 0;
-			}
-		}
-	}
 }

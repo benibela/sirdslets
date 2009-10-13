@@ -15,7 +15,61 @@ public class SIRDSApplets extends SIRDSAppletManager
 {	
 	public void init()
 	{
+		registerSIRDSlet(new SIRDSFlighter());
 		registerSIRDSlet(new AbSIRDlet());
 		super.init();
+	}
+	
+	
+	//applet stand alone execution	
+	static class MockAppletStub implements AppletStub{
+		String path,documentPath;
+		public MockAppletStub(String baseFileName){
+			documentPath=baseFileName;
+			path=documentPath.substring(0,documentPath.lastIndexOf("/")+1);
+		}
+		public void appletResize(int width, int height){
+			return;
+		}
+		public AppletContext getAppletContext(){
+			return null;
+		}
+		
+        public URL getCodeBase(){
+			try{
+				return new URL(path);
+			} catch (MalformedURLException e){
+				return null;
+			}
+		}
+		public URL getDocumentBase(){
+			try{
+				return new URL(documentPath);
+			} catch (MalformedURLException e){
+				return null;
+			}
+		}
+		public String getParameter(String name){
+			return "";
+		}
+		public boolean isActive(){
+			return true;
+		}
+	}
+	
+	public static void main(String args[]){
+		Window w = new Frame();
+		SIRDSApplets sa=new SIRDSApplets();
+		sa.setSize(600,600);
+		w.setSize(600,600);
+		w.add(sa);
+		MockAppletStub stub=new MockAppletStub(sa.getClass().getClassLoader().getResource("SIRDSApplets.class").toString());
+		sa.setStub(stub);
+		System.out.println(stub.getCodeBase().toString());//Class().getClassLoader().getResource("SIRDSApplets.class").toString());
+		sa.setFont(new Font("Dialog",0,11));
+		sa.init();
+		sa.start();
+		w.setVisible(true);
+		sa.run();
 	}
 }

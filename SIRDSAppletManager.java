@@ -18,7 +18,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 {
 	private Thread mUpdateThread;
 	private Image mBackBuffer;
-	private ZDraw mZBuffer;
+	private ZDraw mZBuffer, mZBuffer2;
 	private int[] mRandData1, mRandData2;
 	private ZDraw mSIRDPixels;
 	private MemoryImageSource mSIRDImage;
@@ -27,9 +27,16 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private boolean mUseSIRD = true;
 	private SIRDSAppletManager self; //=this, but also usable in anonymous sub classes
 	
+	private SIRDSlet curSIRDSlet=null;
 	private ArrayList<SIRDSlet> sirdslets=new ArrayList<SIRDSlet>();
-		
+
+	private boolean mAllowLoading=false;
+	private boolean mAllowSaving=false;
+	private boolean mUseZBuffer2=false;
+	
 	protected ArrayList<Floater> floaters = new ArrayList<Floater>();
+	protected TreeMap<String,Floater> namedFloaters = new TreeMap<String,Floater>();
+	protected TreeMap<String,ZSprite> namedSprites = new TreeMap<String,ZSprite>();
 		
 	//sird id: (.*)\.png => load (\1).png
 	//          .*random.* => random (checks for "color" and "strid")
@@ -110,6 +117,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 
 		
 		startPanel=new Panel();
+		startPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		startPanel.setLayout(new GridLayout(0,1));
 		
 		
@@ -122,10 +130,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			final SIRDSlet temp=sirdslets.get(i);
 			b.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
-				startPanel.setVisible(false);
-				optionPanel.setVisible(false);
-				self.requestFocus();
-				temp.start(self);
+				startSIRDSlet(temp);
 			}});
 			startPanel.add(b);
 		}
@@ -133,6 +138,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		
 
 		optionPanel=new Panel();
+		optionPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		optionPanel.setLayout(new GridLayout(0,2));
 
 		title=new Label("Options:");
@@ -234,16 +240,14 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		mBackBuffer = createImage(mSIRDImage);
 				
 		mZBuffer = new ZDraw(mWidth, mHeight);
-		mZBuffer.Clear();
+		mZBuffer.clear();
 		
+		timePerFrame=40; 
+
 		//mRandData = ZDraw.GetRandSIRDData();
 		setFrameSIRD("squares.png","");
 		
-		timePerFrame=40; 
-		
-		//floaters.add(loadFloater("test.png"));
-		floaters.add(createTextFloater("test.png"));
-	}
+			}
 
 	
 	public void start()
@@ -266,9 +270,34 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		mUpdateThread = null;
 	}
 
+	private void startSIRDSlet(SIRDSlet let){
+		self.mUpdateThread.suspend();
+		if (curSIRDSlet!=null) {
+			curSIRDSlet.stop();
+			curSIRDSlet=null;
+		}
+		mZBuffer.clear();
+		startPanel.setVisible(false);
+		optionPanel.setVisible(false);
+		self.requestFocus();
+		self.floaters.clear();
+		self.namedFloaters.clear();
+		self.namedSprites.clear();
+		let.start(self);
+		curSIRDSlet=let;
+		self.mUpdateThread.resume();
+	}
+	
 	public void updateSIRDImage()
 	{
-		if (!mUseSIRD) mZBuffer.DrawHeightMapTo(mSIRDPixels.data);
+		if (mUseZBuffer2) {
+			mZBuffer.forceCopyDataFrom(0,0,mZBuffer2,0,0,mZBuffer2.w,mZBuffer2.h);
+			
+			for (Map.Entry<String,ZSprite> sprite: namedSprites.entrySet())
+				sprite.getValue().drawTo(mZBuffer);
+		}
+	
+		if (!mUseSIRD) mZBuffer.drawHeightMapTo(mSIRDPixels.data);
 		else if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData2, mFrameNumber);
 		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mFrameNumber);
 		
@@ -276,7 +305,14 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			f.draw(mSIRDPixels.data, mZBuffer);
 		}
 		
+		Iterator<Map.Entry<String,Floater>> it = namedFloaters.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry<String,Floater> pairs = it.next();
+			pairs.getValue().draw(mSIRDPixels.data, mZBuffer);
+		}
+
 		mSIRDImage.newPixels();
+		 
 	}
 	
 	private int timePerFrame;
@@ -291,13 +327,14 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		while (Thread.currentThread() == mUpdateThread)
 		{
 			long drawstart = System.currentTimeMillis();
+			if (curSIRDSlet!=null) curSIRDSlet.calculateFrame();
 			updateSIRDImage();
 			mFrameNumber++;
 			//floaters.get(0).z=(floaters.get(0).z+1)%ZDraw.MAXZ;
-			floaters.get(0).x=(floaters.get(0).x+1)%mWidth;
-			floaters.get(0).y=(floaters.get(0).y+1)%mHeight;
+			//floaters.get(0).x=(floaters.get(0).x+1)%mWidth;
+			//floaters.get(0).y=(floaters.get(0).y+1)%mHeight;
 			//repaint();
-			getToolkit().sync();
+//			getToolkit().sync();
 			try
 			{
 				long s=timePerFrame - (System.currentTimeMillis()-drawstart);
@@ -337,7 +374,49 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			requestFocus();
 			optionPanel.setVisible(!optionPanel.isVisible());
 			startPanel.setVisible(optionPanel.isVisible());
+		} else if (e.getKeyCode()==KeyEvent.VK_O && (e.getModifiers() & InputEvent.CTRL_MASK)!=0 && mAllowLoading) {
+			javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+			int returnVal = chooser.showOpenDialog(this);
+			if(returnVal == javax.swing.JFileChooser.APPROVE_OPTION) {
+				try {
+				BufferedImage img = ImageIO.read(chooser.getSelectedFile());
+				int [] temp= new int[mWidth*mHeight]; 
+				if (img.getWidth()>=mWidth && img.getHeight()>=mWidth) {
+					temp=img.getRGB(0,0,mWidth,mHeight,null, 0, img.getWidth());
+				} else {
+					mZBuffer.drawHeightMapTo(temp);
+					int minwidth=Math.min(mWidth,img.getWidth());
+					int minheight=Math.min(mHeight,img.getHeight());
+					int []temp2=img.getRGB(0,0,minwidth,minheight,null, 0, img.getWidth());
+					int indentx=(mWidth-minwidth)/2;
+					int indenty=(mHeight-minheight)/2;
+					for (int y=0;y<minheight;y++){
+						int b1=mZBuffer.getLineIndex(indenty+y);
+						int b2=y*minwidth;
+						for (int x=0;x<minwidth;x++)
+							temp[b1+x+indentx]=temp2[b2+x];
+					}
+				}
+				mZBuffer.readHeightMapFrom(temp);
+				} catch (IOException ex){
+				}
+			}
+		}else if (e.getKeyCode()==KeyEvent.VK_S && (e.getModifiers() & InputEvent.CTRL_MASK)!=0 && mAllowSaving) {
+			javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+			//chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("png", "png"));
+			int returnVal = chooser.showSaveDialog(this);
+			if(returnVal == javax.swing.JFileChooser.APPROVE_OPTION) {
+				try {
+				int [] temp= new int[mWidth*mHeight]; 
+				mZBuffer.drawHeightMapTo(temp);
+				BufferedImage img=new BufferedImage(mWidth,mHeight,BufferedImage.TYPE_INT_ARGB);
+				img.setRGB(0,0,mWidth,mHeight, temp, 0, img.getWidth());
+				ImageIO.write(img, "png", chooser.getSelectedFile());
+				} catch (IOException ex){
+				}
+			}
 		}
+		
 	}
 	public void keyReleased(KeyEvent e){
 	}
@@ -353,12 +432,75 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		sirdslets.add(sirdslet);
 	}
 	
-	public ZDraw getZBuffer(){
-		return mZBuffer;
+	
+	public void setAllowSaving(boolean allowSaving){
+		mAllowSaving=allowSaving;
+	}
+	public void setAllowLoading(boolean allowLoading){
+		mAllowLoading=allowLoading;
+	}
+	public void setDoubleBufferedZBuffer(boolean useZBuffer2){
+		mUseZBuffer2=useZBuffer2;
+		if (!mUseZBuffer2) mZBuffer2=null;
+		else mZBuffer2=new ZDraw(mZBuffer.w,mZBuffer.h);
 	}
 	
+	//Some management functions
+	
+	public ZDraw getZBuffer(){
+		if (!mUseZBuffer2) return mZBuffer;
+		else  return mZBuffer2;
+	}
+	/*public ZDraw getZBuffer2(){
+		return mZBuffer2;
+	}*/
+	
+	public Floater getFloater(int id){
+		if (id<0 || id>=floaters.size()) return null;
+		return floaters.get(id);
+	}
+	public Floater setFloater(int id, Floater f){
+		if (id>=floaters.size()) floaters.add(f);
+		else floaters.set(id,f);
+		return f;
+	}
+	public Floater setFloaterText(int id, String text){
+		Floater newText=createTextFloater(text);
+		Floater old=getFloater(id);
+		if (old==null) return setFloater(id, newText);
+		else old.setToFloater(newText);
+		return old;
+	}
+	
+	public Floater getFloater(String id){
+		return namedFloaters.get(id);
+	}
+	public Floater setFloater(String id, Floater f){
+		namedFloaters.put(id,f);
+		return f;
+	}
+	public Floater setFloaterText(String id, String text){
+		Floater newText=createTextFloater(text);
+		Floater old=getFloater(id);
+		if (old==null) return setFloater(id, newText);
+		else old.setToFloater(newText);
+		return old;
+	}
+
+	public ZSprite getZSprite(String id){
+		return namedSprites.get(id);
+	}
+	public ZSprite setZSprite(String id, ZSprite s){
+		namedSprites.put(id,s);
+		return s;
+	}
 	
 	//Graphic Utility Functions
+	public int[] loadImageData(String name){
+		BufferedImage img = loadImage(name);
+		if (img==null) return null;
+		return img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth());
+	}
 	public BufferedImage loadImage(String name){
 		return loadImage(getCodeBase(), name);
 	}
@@ -379,10 +521,14 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		}
 		return img;
 	}
+
+
+
 	public Floater createFloater(String name){
 		Floater floater=new Floater();
 		BufferedImage img=loadImage(name);
-		floater.data=loadImage(name).getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth());
+		if (img==null) throw new IllegalArgumentException("couldn't find image: "+name);
+		floater.data=img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth());
 		floater.w=img.getWidth();
 		floater.h=img.getHeight();
 		return floater;
@@ -394,5 +540,16 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		Floater floater=new Floater();
 		floater.setToString(text,getGraphics().getFontMetrics(getFont()), c);
 		return floater;
+	}
+
+	
+	
+	public ZSprite createZSprite(String fileName){
+		BufferedImage img=loadImage(fileName);
+		if (img==null) throw new IllegalArgumentException("couldn't find image: "+fileName);
+		ZSprite sprite=new ZSprite(img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()),
+									img.getWidth(),
+									img.getHeight());
+		return sprite;
 	}
 }

@@ -1,8 +1,8 @@
 public interface SIRDSlet{
-	void start(Object manager);
-	void stop();
-	void paintFrame();
-	void calculateFrame();
+	public void start(Object manager);
+	public void stop();
+	public void paintFrame();
+	public void calculateFrame();
 	
-	String getSIRDletName();
+	public String getSIRDletName();
 }
