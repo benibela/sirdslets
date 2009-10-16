@@ -1,6 +1,7 @@
-//import java.util.*;
+import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
+
 class Vector3d{
 	public double x,y,z;
 	public Vector3d(){
@@ -56,6 +57,146 @@ class Vector3d{
 	}
 }
 
+class Cuboid{
+	int minx, maxx, miny, maxy, minz, maxz;
+	int perspectiveOffset=32;
+	public void setSize(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz){
+		if (nmaxx<=nminx) throw new IllegalArgumentException("invalid x size: "+nminx+" - "+nmaxx);
+		if (nmaxy<=nminy) throw new IllegalArgumentException("invalid y size: "+nminy+" - "+nmaxy);
+		if (nmaxz<=nminz) throw new IllegalArgumentException("invalid z size: "+nminz+" - "+nmaxz);
+		//System.out.println("nminz:"+nminz+" nmaxz:"+nmaxz);
+		minx=nminx;
+		maxx=nmaxx;
+		miny=nminy;
+		maxy=nmaxy;
+		minz=nminz;
+		maxz=nmaxz;
+	}
+	public Cuboid(){}
+	public Cuboid(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz){
+		setSize(nminx,  nmaxx, nminy, nmaxy, nminz, nmaxz);
+	}
+	public void drawTo(ZDraw map, int dx, int dy){
+		int nminx=minx+dx;
+		int nmaxx=maxx+dx;
+		
+		int fx=nminx;
+		if (fx<0) fx=0;
+		if (fx>=map.w) return; //culling
+		int tx=nmaxx;
+		if (tx<0) return;
+		if (tx>=map.w) tx=map.w-1;
+		if (tx<fx) return;
+		
+		int fy=miny+dy;
+		if (fy<0) fy=0;
+		if (fy>=map.h) return;
+		int ty=maxy+dy;
+		if (ty<0) return;
+		if (ty>=map.h) ty=map.h-1;
+		if (ty<fy) return;
+		int deltaZ=maxz-minz;
+		//System.out.println(deltaZ+ " "+minz+" "+maxz);
+		for (int y=fy; y<=ty; y++){
+			int b=map.getLineIndex(y);
+			for (int x=fx;x<=tx; x++)
+				if (x<nminx+perspectiveOffset) map.customPut(b+x, (deltaZ*(x-nminx))/perspectiveOffset+minz);
+				else if (x>nmaxx-perspectiveOffset) map.customPut(b+x, (deltaZ*(nmaxx-x))/perspectiveOffset+minz);
+				else map.customPut(b+x, maxz);
+		}
+	}
+	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersection){
+		//transform in the local coordinates of the sprite
+		int nminx=minx+dx-sprite.x;
+		int nmaxx=maxx+dx-sprite.x;
+		
+		int fx=nminx;
+		if (fx<0) fx=0;
+		if (fx>=sprite.w) return false;
+		int tx=nmaxx;
+		if (tx<0) return false;
+		if (tx>=sprite.w) tx=sprite.w-1;
+		if (tx<fx) return false;
+		
+		int fy=miny+dy-sprite.y;
+		if (fy<0) fy=0;
+		if (fy>=sprite.h) return false;
+		int ty=maxy+dy-sprite.y;
+		if (ty<0) return false;
+		if (ty>=sprite.h) ty=sprite.h-1;
+		if (ty<fy) return false;
+		int deltaZ=maxz-minz;
+		//check the area (fx,tx)*(fy,ty) for equal z coordinates
+		boolean result=false;
+		for (int y=fy; y<=ty; y++){
+			int b=sprite.getLineIndex(y);
+			for (int x=fx;x<=tx; x++) {
+				int sz=sprite.data[b+x]+sprite.z;
+				if (sz<minz) continue;
+				int myz;
+				if (x<nminx+perspectiveOffset) myz=(deltaZ*(x-nminx))/perspectiveOffset+minz;
+				else if (x>nmaxx-perspectiveOffset) myz=(deltaZ*(nmaxx-x))/perspectiveOffset+minz;
+				else myz=maxz;
+				if (sz<=myz &&  sprite.dataVisible[b+x]) {
+					result=true;
+					if (removeIntersection) sprite.dataVisible[b+x]=false;
+					else return true;
+				}
+			}
+		}
+		return result;
+	}
+}
+
+class HoledCuboid extends Cuboid{
+	int holeminy, holemaxy, holeminz, holemaxz;
+	Cuboid upper=new Cuboid();
+	Cuboid down=new Cuboid();
+	Cuboid below=new Cuboid();
+	Cuboid above=new Cuboid();
+	
+	public void setSize(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz, int nholeminy, int nholemaxy, int nholeminz, int nholemaxz){
+		super.setSize(nminx,  nmaxx, nminy, nmaxy, nminz, nmaxz);
+		//System.out.println("nholeminy:"+nholeminy+ " nholemaxy:"+nholemaxy+ " nholeminz:"+nholeminz +" nholemaxz:"+nholemaxz);
+		int aboveOffset=perspectiveOffset+8;
+		holeminy=nholeminy;
+		holemaxy=nholemaxy;
+		holeminz=nholeminz;
+		holemaxz=nholemaxz;
+		upper.setSize(nminx,  nmaxx, nminy, holeminy, nminz, nmaxz);
+		down.setSize(nminx,  nmaxx, holemaxy, maxy, nminz, nmaxz);
+		below.setSize(nminx,  nmaxx, nminy, nmaxy, nminz, holeminz);
+		above.setSize(nminx+aboveOffset,  nmaxx-aboveOffset, holeminy, holemaxy, holemaxz, maxz);
+		below.perspectiveOffset=upper.perspectiveOffset*(holeminy-miny)/(maxy-miny);
+	}
+	
+	public HoledCuboid(){}
+	public HoledCuboid(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz, int nholeminy, int nholemaxy, int nholeminz, int nholemaxz){
+		setSize(nminx,  nmaxx, nminy, nmaxy, nminz, nmaxz, nholeminy,nholemaxy,nholeminz,nholemaxz);
+	}
+	
+	public void drawTo(ZDraw map, int dx, int dy){
+		//don't draw myself
+		down.drawTo(map,dx,dy);
+		upper.drawTo(map,dx,dy);
+		above.drawTo(map,dx,dy);
+		below.drawTo(map,dx,dy);
+	}
+
+	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersection){
+		boolean result=false;
+		result=down.intersect(sprite,dx,dy,removeIntersection);
+		if (result && !removeIntersection) return true;
+		result=upper.intersect(sprite,dx,dy,removeIntersection);
+		if (result && !removeIntersection) return true;
+		result=above.intersect(sprite,dx,dy,removeIntersection);
+		if (result && !removeIntersection) return true;
+		result=below.intersect(sprite,dx,dy,removeIntersection);
+		if (result && !removeIntersection) return true;
+		return result;
+	}
+}
+
 public class SIRDSFlighter implements SIRDSlet, KeyListener{
 	private ZDraw mZBuffer;
 	private SIRDSAppletManager mManager;
@@ -63,7 +204,9 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 	private Vector3d mShipA,mShipV,mShipP;
 	private int mZBufferYStart; 
 	private final int mZBufferH=500;
-	private final int MAXFLYZ=20;
+	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
+	private int mLevelScroll, mLevel;
+	private ArrayList<Cuboid> mLevelCuboids;
 	public void start(Object manager){
 		mManager=(SIRDSAppletManager)manager;
 		mManager.setDoubleBufferedZBuffer(true);
@@ -81,7 +224,22 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 		mShipP=new Vector3d(mShip.x,mShip.y-mZBufferYStart,mShip.z);
 		
 		mZBufferYStart=(mZBuffer.h-mZBufferH)/2;
+				
+		startLevel(0);
+	}
+	private void startLevel(int level){
+		mLevelCuboids=new ArrayList<Cuboid>();
+		mLevelScroll=0;
+		mLevel=level;
 		
+		mLevelCuboids.add(new Cuboid(400,530,20,150,5,15));
+		mLevelCuboids.add(new HoledCuboid(500,670,200,400,0,20, 250, 350, 5, 15));
+	}
+	
+	public void stop(){
+	}
+	public void paintFrame(){		
+		mZBuffer.clear();
 		for (int y=0;y<mZBuffer.h;y++) {
 			int newZ = 0;
 			if (y<mZBufferYStart-2*ZDraw.MAXZ) newZ=ZDraw.MAXZ;
@@ -93,12 +251,11 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 			for (int x=0;x<mZBuffer.w;x++) 
 				mZBuffer.data[b+x]=newZ;
 		}
-	}
-	public void stop(){
-	}
-	public void paintFrame(){	
+		for (Cuboid c: mLevelCuboids)	
+			c.drawTo(mZBuffer,mLevelScroll,mZBufferYStart);
 	}
 	public void calculateFrame(){
+		//move user ship
 		mShipV.add(mShipA);
 		if (mShipV.x>10) mShipV.x=30;
 		if (mShipV.y>10) mShipV.y=30;
@@ -107,6 +264,9 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 		if (mShipV.y<-10) mShipV.y=-30;
 		if (mShipV.z<-1) mShipV.z=-1;
 		mShipV.add(mShipV.clone().abs().add(1).multiply(mShipV).multiply(-0.01));//slowing down
+		if (mShipA.x==0) mShipV.x-=0.1*mShipV.x; //fast slowdown
+		if (mShipA.y==0) mShipV.y-=0.1*mShipV.y; //fast slowdown
+		if (mShipA.z==0) mShipV.z-=0.1*mShipV.z; //fast slowdown
 		mShipP.add(mShipV);
 		if (mShipP.x+mShip.w>mZBuffer.w) {
 			mShipP.x=mZBuffer.w-mShip.w;
@@ -135,22 +295,31 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 		mShip.x=(int)Math.round(mShipP.x);
 		mShip.y=(int)Math.round(mShipP.y)+mZBufferYStart;
 		mShip.z=(int)Math.round(mShipP.z);
+		
+		//scroll level
+		mLevelScroll-=1;
+		
+		//calculate collisions ship/geometry
+		for (Cuboid c: mLevelCuboids)	
+			c.intersect(mShip,mLevelScroll,mZBufferYStart,true);
+		
 	}
 	
 	
 	public void keyPressed(KeyEvent e){
+		final double acceleration=1;
 		switch  (e.getKeyCode()) {
 			case KeyEvent.VK_UP:
-				mShipA.y=-0.6;
+				mShipA.y=-acceleration;
 				break;
 			case KeyEvent.VK_DOWN:
-				mShipA.y=0.6;
+				mShipA.y=acceleration;
 				break;
 			case KeyEvent.VK_LEFT:
-				mShipA.x=-0.6;
+				mShipA.x=-acceleration;
 				break;
 			case KeyEvent.VK_RIGHT:
-				mShipA.x=+0.6;
+				mShipA.x=+acceleration;
 				break;
 			case KeyEvent.VK_SHIFT:
 				mShipA.z=+0.05;

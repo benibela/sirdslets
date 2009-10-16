@@ -183,15 +183,18 @@ public class ZDraw extends IntArrayImage
 	//draw a SIRDS image of this height map into 'to'
 	//NOTE: 'start' must be 0, 'stride' must equal w, and this
 	//should be exactly the same as 'to'
-	public void DrawSIRD(int[] to, int[] randdata, int randoffset)
+	public void DrawSIRD(int[] to, int[] randdata, boolean randoffset)
 	{
 		int rlen = randdata.length;
 		//int roff =  randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
-		int roff =  (int)(Math.random()*SIRDW);//10-(10-randoffset) % 20;//Math.abs(randdata[randoffset%rlen])%rlen;
-		int rvoff =   (int)(Math.random()*SIRDH);//randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
-		roff=Math.abs(roff)%rlen;
-		rvoff=Math.abs(rvoff)%rlen;
-		roff=0;rvoff=0;
+		int roff = 0;
+		int rvoff = 0;
+		if (randoffset) {
+			roff =  (int)(Math.random()*SIRDW);//10-(10-randoffset) % 20;//Math.abs(randdata[randoffset%rlen])%rlen;
+			rvoff =   (int)(Math.random()*SIRDH);//randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
+			roff=Math.abs(roff)%rlen;
+			rvoff=Math.abs(rvoff)%rlen;
+		}
 		int b, x, rb;
 		for (int y=0; y<h; y++)
 		{

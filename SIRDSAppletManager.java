@@ -33,6 +33,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private boolean mAllowLoading=false;
 	private boolean mAllowSaving=false;
 	private boolean mUseZBuffer2=false;
+	private boolean mRandomOffset=false;
 	
 	protected ArrayList<Floater> floaters = new ArrayList<Floater>();
 	protected TreeMap<String,Floater> namedFloaters = new TreeMap<String,Floater>();
@@ -168,7 +169,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		optionPanel.add(new Label("second frame:"));
 		optionPanel.add(frame2SIRDChoice);
 
-		final TextField secondsPerFrame=new TextField();
+		/*final TextField secondsPerFrame=new TextField();
 		optionPanel.add(new Label("seconds/frame:"));
 		secondsPerFrame.addTextListener(new TextListener(){
 			public  void textValueChanged(TextEvent e){
@@ -178,7 +179,15 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 				}
 				//javax.swing.JOptionPane.showMessageDialog(null, e.paramString(), "Test Titel", javax.swing.JOptionPane.OK_CANCEL_OPTION);
 			}});
-		optionPanel.add(secondsPerFrame);
+		optionPanel.add(secondsPerFrame);*/
+
+		optionPanel.add(new Label("use random offset:"));
+		Checkbox randomOffset=new Checkbox();
+		randomOffset.addItemListener(new ItemListener(){
+			public void itemStateChanged(ItemEvent e){
+				self.mRandomOffset=(e.getStateChange()==ItemEvent.SELECTED);
+			}});
+		optionPanel.add(randomOffset);
 
 		optionPanel.add(new Label("show performance:"));
 		Checkbox showFPS=new Checkbox();
@@ -290,6 +299,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	
 	public void updateSIRDImage()
 	{
+		if (curSIRDSlet!=null)
+			curSIRDSlet.paintFrame();
 		if (mUseZBuffer2) {
 			mZBuffer.forceCopyDataFrom(0,0,mZBuffer2,0,0,mZBuffer2.w,mZBuffer2.h);
 			
@@ -298,8 +309,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		}
 	
 		if (!mUseSIRD) mZBuffer.drawHeightMapTo(mSIRDPixels.data);
-		else if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData2, mFrameNumber);
-		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mFrameNumber);
+		else if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData2, mRandomOffset);
+		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mRandomOffset);
 		
 		for (Floater f: floaters){	
 			f.draw(mSIRDPixels.data, mZBuffer);

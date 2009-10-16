@@ -79,15 +79,21 @@ public class IntArrayImage{
 	}
 
 	public void forceCopyDataFrom(int tx, int ty, IntArrayImage from, int fx, int fy, int w, int h){
+		int minx=0;
+		if (tx+minx<0) minx=-tx;
+		if (fx+minx<0) minx=-fx;
+		int maxx=w;
+		if (tx+maxx>w) maxx=w-tx;
+		if (fx+maxx>from.w) maxx=from.w-fx;
+		if (maxx<minx) return; //not visible
 		for (int y=0;y<h;y++){
 			if (!from.inYBounds(fy+y)) continue;
 			if (!inYBounds(ty+y)) continue;
 			int bf = from.getLineIndex(fy+y)+fx;
 			int bt = getLineIndex(ty+y)+tx;
 			
-			for (int x=0;x<w;x++)
-				if (inXBounds(tx+x) && from.inXBounds(fx+x))
-					forcePut(bt+x, from.data[bf+x]);
+			for (int x=minx;x<maxx;x++)
+				forcePut(bt+x, from.data[bf+x]);
 		}
 	}
 }
