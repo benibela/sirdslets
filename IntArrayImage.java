@@ -4,6 +4,12 @@ public class IntArrayImage{
 	public int start=0;
 	public int stride;
 
+	public IntArrayImage(){
+	}
+	public IntArrayImage(int nw, int nh){
+		setSize(nw,nh);
+	}
+	
 	public int getLineIndex(int y)
 	{
 		return (start + (y*stride));
@@ -23,10 +29,16 @@ public class IntArrayImage{
 		{
 			b = getLineIndex(y);
 			for (int x=0; x<w; x++)
-			{
 				data[b+x] = 0;
-			}
 		}
+	}
+	
+	public void assign(IntArrayImage f){
+		data = f.data;
+		w=f.w;
+		h=f.h;
+		start=f.start;
+		stride=f.stride;
 	}
 	
 	public boolean InBounds(int x, int y)

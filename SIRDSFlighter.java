@@ -1,6 +1,7 @@
 import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 
 class Vector3d{
 	public double x,y,z;
@@ -57,7 +58,8 @@ class Vector3d{
 	}
 }
 
-class Cuboid{
+class Cuboid implements Serializable{
+	static final long serialVersionUID = -6773890043854716267L;
 	int minx, maxx, miny, maxy, minz, maxz;
 	int perspectiveOffset=32;
 	public void setSize(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz){
@@ -149,6 +151,7 @@ class Cuboid{
 }
 
 class HoledCuboid extends Cuboid{
+	static final long serialVersionUID = -7398540760922297999L;
 	int holeminy, holemaxy, holeminz, holemaxz;
 	Cuboid upper=new Cuboid();
 	Cuboid down=new Cuboid();
@@ -185,57 +188,83 @@ class HoledCuboid extends Cuboid{
 
 	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersection){
 		boolean result=false;
-		result=down.intersect(sprite,dx,dy,removeIntersection);
+		result|=down.intersect(sprite,dx,dy,removeIntersection);
 		if (result && !removeIntersection) return true;
-		result=upper.intersect(sprite,dx,dy,removeIntersection);
+		result|=upper.intersect(sprite,dx,dy,removeIntersection);
 		if (result && !removeIntersection) return true;
-		result=above.intersect(sprite,dx,dy,removeIntersection);
+		result|=above.intersect(sprite,dx,dy,removeIntersection);
 		if (result && !removeIntersection) return true;
-		result=below.intersect(sprite,dx,dy,removeIntersection);
+		result|=below.intersect(sprite,dx,dy,removeIntersection);
 		if (result && !removeIntersection) return true;
 		return result;
 	}
 }
 
 public class SIRDSFlighter implements SIRDSlet, KeyListener{
-	private ZDraw mZBuffer;
-	private SIRDSAppletManager mManager;
-	private ZSprite mShip;
+	protected ZDraw mZBuffer;
+	protected SIRDSAppletManager mManager;
+	protected ZSprite mShip;
 	private Vector3d mShipA,mShipV,mShipP;
-	private int mZBufferYStart; 
-	private final int mZBufferH=500;
+	protected int mZBufferYStart; 
+	protected final int mZBufferH=500;
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
-	private int mLevelScroll, mLevel;
-	private ArrayList<Cuboid> mLevelCuboids;
+	protected int mLevelScroll, mLevel;
+	private int mInitialLife, mCurrentLife;
+	protected ArrayList<Cuboid> mLevelCuboids;
 	public void start(Object manager){
 		mManager=(SIRDSAppletManager)manager;
 		mManager.setDoubleBufferedZBuffer(true);
 		mZBuffer=mManager.getZBuffer();
 		
 		mManager.addKeyListener(this);
-		
+
+		mZBufferYStart=(mZBuffer.h-mZBufferH)/2;
+				
+		startLevel(1);
+	}
+	protected void startLevel(int level){
+		mManager.suspendRendering();
+		mManager.removeFloater("zerror");
+		//reset ship position
 		mShip=mManager.setZSprite("ship",mManager.createZSprite("flighter/ship.png"));
+		mInitialLife=0;
+		for (int y=0;y<mShip.h;y++){
+			int b=mShip.getLineIndex(y);
+			for (int x=0;x<mShip.w;x++)
+				if (mShip.dataVisible[b+x]) mInitialLife+=1;
+		}
+		mCurrentLife=mInitialLife;
+		updateLife();
+		
 		mShip.x=300-mShip.w/2;
 		mShip.y=250-mShip.h/2;
 		mShip.z=10;
-		
+
 		mShipA=new Vector3d();
 		mShipV=new Vector3d();
 		mShipP=new Vector3d(mShip.x,mShip.y-mZBufferYStart,mShip.z);
 		
-		mZBufferYStart=(mZBuffer.h-mZBufferH)/2;
-				
-		startLevel(0);
-	}
-	private void startLevel(int level){
-		mLevelCuboids=new ArrayList<Cuboid>();
+		try{
+			ObjectInputStream levelStream = new ObjectInputStream(new BufferedInputStream(mManager.getFileURL("flighter/level"+level+".ser").openStream()));
+			mLevelCuboids = (ArrayList<Cuboid>) levelStream.readObject( );
+			if (mLevelCuboids==null) throw new ClassNotFoundException();
+			levelStream.close(); 
+		} catch (IOException e){
+			mLevelCuboids=new ArrayList<Cuboid>();
+			mManager.setFloaterText("zerror","Level "+level+" missing").y=mZBuffer.h/2;
+		} catch (ClassNotFoundException e){
+			mLevelCuboids=new ArrayList<Cuboid>();
+			mManager.setFloaterText("zerror","Level "+level+" invalid").y=mZBuffer.h/2;
+		}
 		mLevelScroll=0;
 		mLevel=level;
 		
-		mLevelCuboids.add(new Cuboid(400,530,20,150,5,15));
-		mLevelCuboids.add(new HoledCuboid(500,670,200,400,0,20, 250, 350, 5, 15));
+		//mLevelCuboids.add(new Cuboid(400,530,20,150,5,15));
+		//mLevelCuboids.add(new HoledCuboid(500,670,200,400,0,20, 250, 350, 5, 15));
+		mManager.resumeRendering();
+		
 	}
-	
+		
 	public void stop(){
 	}
 	public void paintFrame(){		
@@ -297,12 +326,46 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 		mShip.z=(int)Math.round(mShipP.z);
 		
 		//scroll level
-		mLevelScroll-=1;
+		mLevelScroll-=2;
 		
 		//calculate collisions ship/geometry
+		boolean coll=false;
 		for (Cuboid c: mLevelCuboids)	
-			c.intersect(mShip,mLevelScroll,mZBufferYStart,true);
+			coll|=c.intersect(mShip,mLevelScroll,mZBufferYStart,true);
+		if (coll) updateLife();
+	}
+	
+	private void updateLife(){
+		Floater life=mManager.getFloater("life");
+		if (life==null) {
+			life=mManager.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
+			life.x=5;
+			life.y=5;
+			life.z=ZDraw.MAXZ;
+		}
+		mCurrentLife=0;
+		for (int y=0;y<mShip.h;y++){
+			int b=mShip.getLineIndex(y);
+			for (int x=0;x<mShip.w;x++)
+				if (mShip.dataVisible[b+x]) mCurrentLife+=1;
+		}
 		
+		int padding=1;
+		int len=life.w-2*padding;
+		int healthyEnd=len*(mCurrentLife-mInitialLife/2)*2/mInitialLife+padding;
+		for (int x=0; x<life.w;x++){
+			int b=life.getLineIndex(padding);
+			int color=0xffeeeeee;
+			life.data[life.getLineIndex(0)+x]=color;
+			life.data[life.getLineIndex(life.h-1)+x]=color;
+			if (x>=padding && x<=len)
+				if (x>healthyEnd) color=0xffff0000;
+				else color=0xff00ff00;
+			for (int y=padding;y<life.h-padding;y++){
+				life.data[b+x]=color;
+				b+=life.stride;
+			}
+		}
 	}
 	
 	

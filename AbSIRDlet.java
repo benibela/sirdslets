@@ -47,12 +47,9 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		
 		mManager.setDoubleBufferedZBuffer(false);
 		
-		Cursor c = Toolkit.getDefaultToolkit().createCustomCursor(
-				new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
-				new Point(1, 1), "Custom Cursor");
 
 
-		mManager.setCursor(c);//new Cursor(Cursor.CUSTOM_CURSOR ));//we draw our own
+		mManager.setShowFloaterCursor(true);
 		mManager.setAllowSaving(true);
 		mManager.setAllowLoading(true);
 		mManager.addMouseListener(this);
@@ -70,25 +67,19 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		DrawPallette();
 		
 		
-		Floater f=mManager.setFloaterText("position","Position: ");
-		f.mergeColor(0xffddddcc);
+		Floater f=mManager.setFloaterText("position","Position: ",0xffddddcc);
 		f.z=2;
 		int lineHeight=f.h;
-		f=mManager.setFloaterText("xpos","x: ?");
-		f.mergeColor(0xffddddcc);
+		f=mManager.setFloaterText("xpos","x: ?",0xffddddcc);
 		f.y=lineHeight;
-		f=mManager.setFloaterText("ypos","y: ?");
-		f.mergeColor(0xffddddcc);
+		f=mManager.setFloaterText("ypos","y: ?",0xffddddcc);
 		f.y=2*lineHeight;
-		f=mManager.setFloaterText("zpos","z: ?");
-		f.mergeColor(0xffddddcc);		
+		f=mManager.setFloaterText("zpos","z: ?",0xffddddcc);
 		f.y=3*lineHeight;
-		f=mManager.setFloaterText("pen","pen-size: "+mDrawRadius);
-		f.mergeColor(0xffddddcc);		
+		f=mManager.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
 		f.y=4*lineHeight;
 
 		mManager.setFloater("apenmouse",new Floater(2*mDrawRadius,2*mDrawRadius));
-		mManager.setFloater("mouse",mManager.createFloater("painter/mouse.png"));
 		updatePenInformation();
 		//f.ignoreHeightmap=false;
 	}
@@ -158,23 +149,20 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 	}
 
 	private void updatePenInformation(){
-		mManager.setFloaterText("pen","pen-size: "+mDrawRadius).mergeColor(0xffddddcc);
+		mManager.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
 		Floater f=mManager.getFloater("apenmouse");
 		if (2*mDrawRadius>=mZBuffer.SIRDW) return;
  		if (f.w<2*mDrawRadius || f.h<2*mDrawRadius) f.setSize(2*mDrawRadius,2*mDrawRadius);
 		f.clear();
 		f.fillCircle(f.w/2,f.h/2, mDrawRadius,0x88ee8800);
-		f.fillCircle(f.w/2,f.h/2, 2,0xff000000);
+		f.fillCircle(f.w/2+1,f.h/2, 2,0xff000000);
 	}
 	private void drawInformation(){
-		mManager.setFloaterText("xpos","x: "+mCurMX).mergeColor(0xffddddcc);
-		mManager.setFloaterText("ypos", "y: "+mCurMY).mergeColor(0xffddddcc);
-		mManager.setFloaterText("zpos","z: "+ mCurrentZ).mergeColor(0xffddddcc);
-		Floater mf=mManager.getFloater("mouse");
-		mf.x=mCurMX-2;
-		mf.y=mCurMY;
-		mf.z=mCurrentZ+3;
-		mf=mManager.getFloater("apenmouse");
+		mManager.setFloaterText("xpos","x: "+mCurMX,0xffddddcc);
+		mManager.setFloaterText("ypos", "y: "+mCurMY,0xffddddcc);
+		mManager.setFloaterText("zpos","z: "+ mCurrentZ,0xffddddcc);
+		mManager.setFloaterCursorZ(mCurrentZ+3);
+		Floater mf=mManager.getFloater("apenmouse");
 		mf.x=mCurMX-mf.w/2;
 		mf.y=mCurMY-mf.h/2;
 		mf.z=mCurrentZ;

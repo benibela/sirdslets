@@ -13,14 +13,19 @@ import java.io.*;
 import javax.imageio.*; 
 import java.net.*;
 
+class TimedFloater extends Floater{
+	int timetolive;  //time until removal in ms
+}
 		
-public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
+public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener, MouseMotionListener
 {
+	public enum MessageType {MESSAGE_NOTIFY, MESSAGE_WARNING, MESSAGE_ERROR, MESSAGE_FATAL};
+	
 	private Thread mUpdateThread;
 	private Image mBackBuffer;
 	private ZDraw mZBuffer, mZBuffer2;
 	private int[] mRandData1, mRandData2;
-	private ZDraw mSIRDPixels;
+	private IntArrayImage mSIRDPixels;
 	private MemoryImageSource mSIRDImage;
 	private int mWidth, mHeight;
 	private int mFrameNumber = 0;
@@ -34,6 +39,10 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private boolean mAllowSaving=false;
 	private boolean mUseZBuffer2=false;
 	private boolean mRandomOffset=false;
+	private boolean mShowFloaterCursor=false;
+	private boolean mFloaterCursorZ=false;
+	
+	private java.util.concurrent.locks.Lock renderLock=new java.util.concurrent.locks.ReentrantLock();
 	
 	protected ArrayList<Floater> floaters = new ArrayList<Floater>();
 	protected TreeMap<String,Floater> namedFloaters = new TreeMap<String,Floater>();
@@ -202,10 +211,10 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			public void actionPerformed(ActionEvent e){
 				if (freeze.getLabel()=="freeze"){
 					freeze.setLabel("continue");
-					self.mUpdateThread.suspend();
+					self.suspendRendering();
 				} else {
 					freeze.setLabel("freeze");
-					self.mUpdateThread.resume();
+					self.resumeRendering();
 				}
 			}});
 		optionPanel.add(freeze);
@@ -241,7 +250,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		mWidth  = getSize().width;
 		mHeight = getSize().height;
 
-		mSIRDPixels     = new ZDraw(mWidth, mHeight);		
+		mSIRDPixels     = new IntArrayImage(mWidth, mHeight);		
 		
 		mSIRDImage = new MemoryImageSource(mWidth, mHeight, mSIRDPixels.data, 0, mWidth);
 		mSIRDImage.setAnimated(true);
@@ -280,21 +289,35 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	}
 
 	private void startSIRDSlet(SIRDSlet let){
-		self.mUpdateThread.suspend();
+		suspendRendering();
 		if (curSIRDSlet!=null) {
+			if (curSIRDSlet instanceof KeyListener) removeKeyListener((KeyListener)curSIRDSlet);
+			if (curSIRDSlet instanceof MouseListener) removeMouseListener((MouseListener)curSIRDSlet);
+			if (curSIRDSlet instanceof MouseMotionListener) removeMouseMotionListener((MouseMotionListener)curSIRDSlet);
 			curSIRDSlet.stop();
 			curSIRDSlet=null;
 		}
 		mZBuffer.clear();
 		startPanel.setVisible(false);
 		optionPanel.setVisible(false);
-		self.requestFocus();
-		self.floaters.clear();
-		self.namedFloaters.clear();
-		self.namedSprites.clear();
-		let.start(self);
+		requestFocus();
+		//reset to default
+		floaters.clear();
+		namedFloaters.clear();
+		namedSprites.clear();
+		setShowFloaterCursor(false);
+		setAllowSaving(false);
+		setAllowSaving(false);
+		let.start(this);
 		curSIRDSlet=let;
-		self.mUpdateThread.resume();
+		resumeRendering();
+	}
+	
+	public void suspendRendering(){
+		renderLock.lock();
+	}
+	public void resumeRendering(){
+		renderLock.unlock();
 	}
 	
 	public void updateSIRDImage()
@@ -313,13 +336,15 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mRandomOffset);
 		
 		for (Floater f: floaters){	
-			f.draw(mSIRDPixels.data, mZBuffer);
+			if (mUseSIRD) f.draw(mSIRDPixels);
+			else f.drawSimple(mSIRDPixels);
 		}
 		
 		Iterator<Map.Entry<String,Floater>> it = namedFloaters.entrySet().iterator();
 		while (it.hasNext()) {
 			Map.Entry<String,Floater> pairs = it.next();
-			pairs.getValue().draw(mSIRDPixels.data, mZBuffer);
+			if (mUseSIRD) pairs.getValue().draw(mSIRDPixels);
+			else pairs.getValue().drawSimple(mSIRDPixels);
 		}
 
 		mSIRDImage.newPixels();
@@ -337,7 +362,18 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		int conSlow=0;
 		while (Thread.currentThread() == mUpdateThread)
 		{
+			suspendRendering();
 			long drawstart = System.currentTimeMillis();
+			Iterator<Map.Entry<String,Floater>> it = namedFloaters.entrySet().iterator();
+			while (it.hasNext()) {
+				Map.Entry<String,Floater> pairs = it.next();
+				if (pairs.getValue() instanceof TimedFloater){
+					TimedFloater tf=(TimedFloater)pairs.getValue();
+					tf.timetolive-=timePerFrame;
+					if (tf.timetolive<0) 
+						tf.visible=false; //TODO: lockup docu
+				}
+			}
 			if (curSIRDSlet!=null) curSIRDSlet.calculateFrame();
 			updateSIRDImage();
 			mFrameNumber++;
@@ -366,7 +402,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			catch (InterruptedException e)
 			{
 			}
-			
+			resumeRendering();
 		}
 	}
 
@@ -426,6 +462,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 				} catch (IOException ex){
 				}
 			}
+		} else if (e.getKeyCode()==KeyEvent.VK_ENTER){
+			mUseSIRD=!mUseSIRD;
 		}
 		
 	}
@@ -456,6 +494,55 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		else mZBuffer2=new ZDraw(mZBuffer.w,mZBuffer.h);
 	}
 	
+	public void setShowFloaterCursor(boolean showMouse){
+		if (mShowFloaterCursor==showMouse) return;
+		mShowFloaterCursor=showMouse;
+		if (mShowFloaterCursor) {
+			setFloater("~floaterCursor",createFloater("mouse.png"));
+			addMouseMotionListener(this);
+			Cursor c = getToolkit().createCustomCursor(
+				new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
+				new Point(1, 1), "Custom Cursor");
+			setCursor(c);//new Cursor(Cursor.CUSTOM_CURSOR ));//we draw our own	
+		} else {
+			removeFloater("~floaterCursor");
+			removeMouseMotionListener(this);
+		}
+	}
+
+	public void setFloaterCursorZ(int mouseZ){
+		if (!mShowFloaterCursor) return;
+		Floater f = getFloater("~floaterCursor");
+		if (mouseZ<0) mouseZ=0;
+		if (mouseZ>ZDraw.MAXZ) mouseZ=ZDraw.MAXZ;
+		f.z=mouseZ;
+	}
+	public int getFloaterCursorZ(){
+		if (!mShowFloaterCursor) return -1;
+		Floater f = getFloater("~floaterCursor");
+		if (f==null) return -1;
+		return f.z;
+	}
+	public Floater getFloaterCursor(){
+		if (!mShowFloaterCursor) return null;
+		return getFloater("~floaterCursor");
+	}
+	
+	public void mouseDragged(MouseEvent e)
+	{
+		if (!mShowFloaterCursor) return;
+		Floater f = getFloater("~floaterCursor");
+		f.x=e.getX();
+		f.y=e.getY();
+	}
+	public void mouseMoved(MouseEvent e)
+	{
+		if (!mShowFloaterCursor) return;
+		Floater f = getFloater("~floaterCursor");
+		f.x=e.getX();
+		f.y=e.getY();
+	}
+	
 	//Some management functions
 	
 	public ZDraw getZBuffer(){
@@ -479,10 +566,18 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		Floater newText=createTextFloater(text);
 		Floater old=getFloater(id);
 		if (old==null) return setFloater(id, newText);
-		else old.setToFloater(newText);
+		else old.assign(newText);
 		return old;
 	}
+	public Floater setFloaterText(int id, String text, int backgroundColor){
+		Floater f=setFloaterText(id, text);
+		f.mergeColor(backgroundColor);
+		return f;
+	}
 	
+	public void removeFloater(String id){
+		namedFloaters.remove(id);
+	}
 	public Floater getFloater(String id){
 		return namedFloaters.get(id);
 	}
@@ -494,8 +589,13 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		Floater newText=createTextFloater(text);
 		Floater old=getFloater(id);
 		if (old==null) return setFloater(id, newText);
-		else old.setToFloater(newText);
+		else old.assign(newText);
 		return old;
+	}
+	public Floater setFloaterText(String id, String text, int backgroundColor){
+		Floater f=setFloaterText(id, text);
+		f.mergeColor(backgroundColor);
+		return f;
 	}
 
 	public ZSprite getZSprite(String id){
@@ -532,27 +632,55 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		}
 		return img;
 	}
-
+	public URL getFileURL(String name){
+		try {
+			//System.out.println(new URL(getCodeBase(),name));
+			return new URL(getCodeBase(),name);
+		} catch (Exception e){}
+		return null;
+	}
 
 
 	public Floater createFloater(String name){
 		Floater floater=new Floater();
 		BufferedImage img=loadImage(name);
 		if (img==null) throw new IllegalArgumentException("couldn't find image: "+name);
-		floater.data=img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth());
-		floater.w=img.getWidth();
-		floater.h=img.getHeight();
+		floater.setToImage(img);
 		return floater;
 	}
 	public Floater createTextFloater(String text){
 		return createTextFloater(text,Color.BLACK);
 	}
-	public Floater createTextFloater(String text, Color c){
+	public Floater createTextFloater(String text, Color foregroundColor){
 		Floater floater=new Floater();
-		floater.setToString(text,getGraphics().getFontMetrics(getFont()), c);
+		floater.setToString(text,getGraphics().getFontMetrics(getFont()), foregroundColor);
+		return floater;
+	}
+	public Floater createTextFloater(String text, int backgroundColor){
+		Floater floater=new Floater();
+		floater.setToString(text,getGraphics().getFontMetrics(getFont()), Color.BLACK);
+		floater.mergeColor(backgroundColor);
 		return floater;
 	}
 
+
+	public void showFloaterMessage(String message){
+		showFloaterMessage(message, MessageType.MESSAGE_NOTIFY);
+	}
+	public void showFloaterMessage(String message, MessageType type){
+		TimedFloater f = new TimedFloater();
+		int color=0xffddddcc;
+		if (type == MessageType.MESSAGE_ERROR || type==MessageType.MESSAGE_FATAL) color=0xffff0000;
+		f.setToString(message, getGraphics().getFontMetrics(getFont()), Color.BLACK);
+		f.mergeColor(color);
+		f.y=(mHeight-f.h)/2;
+		f.timetolive=5*1000;
+		setFloater("~message",f);
+		
+		if (!false){
+			System.out.println(type+": "+message);
+		}
+	}
 	
 	
 	public ZSprite createZSprite(String fileName){

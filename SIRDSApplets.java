@@ -17,6 +17,7 @@ public class SIRDSApplets extends SIRDSAppletManager
 	{
 		registerSIRDSlet(new SIRDSFlighter());
 		registerSIRDSlet(new AbSIRDlet());
+		registerSIRDSlet(new SIRDSFlighterEditor());
 		super.init();
 	}
 	
@@ -59,6 +60,13 @@ public class SIRDSApplets extends SIRDSAppletManager
 	
 	public static void main(String args[]){
 		Window w = new Frame();
+		w.addWindowListener(new WindowAdapter(){
+			public void windowClosing (WindowEvent event)
+			{ 
+				System.exit(0);
+			}
+		});
+
 		SIRDSApplets sa=new SIRDSApplets();
 		sa.setSize(600,600);
 		w.setSize(600,600);
