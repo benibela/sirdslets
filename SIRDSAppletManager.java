@@ -30,6 +30,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private int mWidth, mHeight;
 	private int mFrameNumber = 0;
 	private boolean mUseSIRD = true;
+	private boolean mInvert = false; //false: parallel, true: cross eyes
 	private SIRDSAppletManager self; //=this, but also usable in anonymous sub classes
 	
 	private SIRDSlet curSIRDSlet=null;
@@ -190,6 +191,14 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			}});
 		optionPanel.add(secondsPerFrame);*/
 
+		optionPanel.add(new Label("invert (cross eye)"));
+		Checkbox inverter=new Checkbox();
+		inverter.addItemListener(new ItemListener(){
+			public void itemStateChanged(ItemEvent e){
+				self.mInvert=(e.getStateChange()==ItemEvent.SELECTED);
+			}});
+		optionPanel.add(inverter);
+
 		optionPanel.add(new Label("use random offset:"));
 		Checkbox randomOffset=new Checkbox();
 		randomOffset.addItemListener(new ItemListener(){
@@ -331,9 +340,9 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 				sprite.getValue().drawTo(mZBuffer);
 		}
 	
-		if (!mUseSIRD) mZBuffer.drawHeightMapTo(mSIRDPixels.data);
-		else if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData2, mRandomOffset);
-		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mRandomOffset);
+		if (!mUseSIRD) mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert);
+		else if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData2, mRandomOffset, mInvert);
+		else mZBuffer.DrawSIRD(mSIRDPixels.data, mRandData1, mRandomOffset, mInvert);
 		
 		for (Floater f: floaters){	
 			if (mUseSIRD) f.draw(mSIRDPixels);
@@ -513,8 +522,9 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	public void setFloaterCursorZ(int mouseZ){
 		if (!mShowFloaterCursor) return;
 		Floater f = getFloater("~floaterCursor");
-		if (mouseZ<0) mouseZ=0;
-		if (mouseZ>ZDraw.MAXZ) mouseZ=ZDraw.MAXZ;
+		//don't check, cursor movements in higher level could be useful
+//		if (mouseZ<0) mouseZ=0;
+//		if (mouseZ>ZDraw.MAXZ) mouseZ=ZDraw.MAXZ;
 		f.z=mouseZ;
 	}
 	public int getFloaterCursorZ(){
@@ -566,7 +576,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		Floater newText=createTextFloater(text);
 		Floater old=getFloater(id);
 		if (old==null) return setFloater(id, newText);
-		else old.assign(newText);
+		else old.assignNoCopy(newText);
 		return old;
 	}
 	public Floater setFloaterText(int id, String text, int backgroundColor){
@@ -589,7 +599,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		Floater newText=createTextFloater(text);
 		Floater old=getFloater(id);
 		if (old==null) return setFloater(id, newText);
-		else old.assign(newText);
+		else old.assignNoCopy(newText);
 		return old;
 	}
 	public Floater setFloaterText(String id, String text, int backgroundColor){

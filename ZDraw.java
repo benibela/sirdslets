@@ -14,6 +14,7 @@
 // mirror for leweyg: http://www.lewcid.com/download/SIRD/index.html
 
 import java.util.*;
+import java.awt.*; 
 import java.awt.image.*; 
 
 public class ZDraw extends IntArrayImage
@@ -73,7 +74,7 @@ public class ZDraw extends IntArrayImage
 			y = (((x - f.x)*dy)/dx) + f.y;
 			w = (((x - f.x)*dw)/dx) + fw;
 			z = (((x - f.x)*dz)/dx) + f.z;
-			b = GetIndex(x, y);
+			b = getIndex(x, y);
 			for (int i=0; i<w; i++)
 			{
 				data[b+i*stride] = z;
@@ -112,13 +113,7 @@ public class ZDraw extends IntArrayImage
 				data[b+i] = z;
 			}
 		}
-	}
-		
-	public int GetIndex(int x, int y)
-	{
-		return (start + x + (y*stride));
-	}
-	
+	}	
 
 	public ZDraw(int[] pxls, int width, int height, int strt, int strid)
 	{
@@ -180,10 +175,14 @@ public class ZDraw extends IntArrayImage
 		return data;
 	}
 	
+	public void DrawSIRD(int[] to, int[] randdata, boolean randoffset){
+		DrawSIRD(to,randdata, randoffset,false);
+	}
+	
 	//draw a SIRDS image of this height map into 'to'
 	//NOTE: 'start' must be 0, 'stride' must equal w, and this
 	//should be exactly the same as 'to'
-	public void DrawSIRD(int[] to, int[] randdata, boolean randoffset)
+	public void DrawSIRD(int[] to, int[] randdata, boolean randoffset, boolean invert)
 	{
 		int rlen = randdata.length;
 		//int roff =  randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
@@ -205,16 +204,24 @@ public class ZDraw extends IntArrayImage
 			{
 				to[b+x] = 0xff000000 | randdata[(x+rb)%rlen];
 			}
-			for (x=SIRDW; x<w; x++)
-			{
-				to[b+x] = to[b+x-SIRDW+data[b+x]];			
-			}
+			if (!invert){
+				for (x=SIRDW; x<w; x++)
+					to[b+x] = to[b+x-SIRDW+data[b+x]];			
+			} else
+				for (x=SIRDW; x<w; x++)
+					to[b+x] = to[b+x-SIRDW+ZDraw.MAXZ-data[b+x]];			
+			
 		}
 	}
 	
-	public void drawHeightMapTo(int[] to)
+	
+	public void drawHeightMapTo(int[] to){
+		drawHeightMapTo(to, false);
+	}
+	public void drawHeightMapTo(int[] to, boolean invert)
 	{
 		int b;
+		int inv = invert?0x00ffffff:0;
 		for (int y=0; y<h; y++)
 		{
 			b = getLineIndex(y);
@@ -222,6 +229,7 @@ public class ZDraw extends IntArrayImage
 			{
 				int v = data[b+x]*255 / MAXZ;
 				v = 0xff000000 | v | (v<<8) | (v<<16);
+				v ^= inv;
 				to[b+x] = v;
 			}
 		}
@@ -268,7 +276,7 @@ public class ZDraw extends IntArrayImage
 		{
 			for (x=x1; x!=x2; x+=dx)
 			{
-				if (InBounds(x,y))
+				if (inBounds(x,y))
 				{
 					customPut(start+x+(y*stride), z);
 				}
@@ -285,7 +293,7 @@ public class ZDraw extends IntArrayImage
 		{
 			for (y=y1; y!=y2; y+=dy)
 			{
-				if (InBounds(x,y))
+				if (inBounds(x,y))
 				{
 					customPut(start+x+(y*stride), z);
 				}
@@ -311,36 +319,29 @@ public class ZDraw extends IntArrayImage
 		fillCircle(x2, y2, r, z);
 	}
 	
-	/*public void DrawCircle(int x, int y, int r, int z)
-	{
-		int cr = r*r, cy;
-		int b;
-		for (int dy=-r; dy<=r; dy++)
-		{
-			b = getLineIndex(y+dy);
-			cy = dy*dy;
-			for (int dx=-r; dx<=r; dx++)
-			{
-				if ( (dx*dx) + cy <= cr)
-				{
-					if (InBounds(x+dx, y+dy))
-						SafePut(b+x+dx,z);
-				}
-			}
-		}
-	}*/
+	public void setToString(String text, FontMetrics fontMetric, int minz, int maxz){	
+		setToString(text, fontMetric, minz, maxz, 13);
+	}
 	
-	public void fillRect(int x, int y, int wd, int ht, int z)
-	{
-		int b;
-		for (int dy=0; dy<ht; dy++)
-		{
-			b = GetIndex(x, y+dy);
-			for (int dx=0; dx<wd; dx++)
-			{
-				data[b+dx] = z;
-			}
+	public void setToString(String text, FontMetrics fontMetric, int minz, int maxz, int blur){	
+		//standard generate text
+		setToStringARGB(text,fontMetric,Color.BLACK);
+		//convert to z
+		for (int y=0;y<h;y++){
+			int b=getLineIndex(y);
+			for (int x=0;x<w;x++)
+				if ((data[b+x] >>> 24) >= 0x80) data[b+x]=maxz;
+				else data[b+x]=minz;
 		}
+		enlarge(blur,minz);
+		//blur
+		this.blur(blur,0xffff);
+	}
+	
+	public static ZDraw createString(String text, FontMetrics fontMetric, int minz, int maxz, int blur){
+		ZDraw res=new ZDraw();
+		res.setToString(text,fontMetric,minz,maxz,blur);
+		return res;
 	}
 	
 }

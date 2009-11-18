@@ -203,12 +203,12 @@ class HoledCuboid extends Cuboid{
 public class SIRDSFlighter implements SIRDSlet, KeyListener{
 	protected ZDraw mZBuffer;
 	protected SIRDSAppletManager mManager;
-	protected ZSprite mShip;
+	protected ZSprite mShip, mLevelEnd;
 	private Vector3d mShipA,mShipV,mShipP;
 	protected int mZBufferYStart; 
 	protected final int mZBufferH=500;
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
-	protected int mLevelScroll, mLevel;
+	protected int mLevelScroll, mLevel, mLevelLength;
 	private int mInitialLife, mCurrentLife;
 	protected ArrayList<Cuboid> mLevelCuboids;
 	public void start(Object manager){
@@ -256,6 +256,20 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 			mLevelCuboids=new ArrayList<Cuboid>();
 			mManager.setFloaterText("zerror","Level "+level+" invalid").y=mZBuffer.h/2;
 		}
+		
+		mLevelLength=0;
+		for (Cuboid c: mLevelCuboids)
+			if (c.maxx>mLevelLength) mLevelLength=c.maxx;
+			
+		mLevelEnd=mManager.setZSprite("levelEnd",new ZSprite());
+		mLevelEnd.setToString("Level "+(level+1),mManager.getGraphics().getFontMetrics(
+			//new Font("Arial Black",Font.BOLD,100)),0,15);
+			new Font("Arial Black",Font.BOLD,300)),0,15);
+		//mLevelEnd.rotate90R();
+		mLevelEnd.x=mLevelLength+50;
+		mLevelEnd.y=mZBufferYStart+(mZBufferH-mLevelEnd.h)/2;
+		mLevelEnd.updateVisibilityData();
+		
 		mLevelScroll=0;
 		mLevel=level;
 		
@@ -324,6 +338,8 @@ public class SIRDSFlighter implements SIRDSlet, KeyListener{
 		mShip.x=(int)Math.round(mShipP.x);
 		mShip.y=(int)Math.round(mShipP.y)+mZBufferYStart;
 		mShip.z=(int)Math.round(mShipP.z);
+
+		mLevelEnd.x=mLevelLength+50+mLevelScroll;
 		
 		//scroll level
 		mLevelScroll-=2;

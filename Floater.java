@@ -79,24 +79,19 @@ public class Floater extends IntArrayImage{
 
 	
 	//set to methods only change the data, not the position 	
-	public void setToImage(BufferedImage img){
+	
+	//override to force max width
+	public void setToImageARGB(BufferedImage img){
 		int nw=img.getWidth();
 		if (nw>ZDraw.SIRDW) nw = ZDraw.SIRDW; //prevent exception
 		setSize(nw, img.getHeight());
 		data=img.getRGB(0,0,nw,h, data, 0, nw);
 	}
-	
+			
 	public void setToString(String text, FontMetrics fontMetric, Color c){
-		w=fontMetric.stringWidth(text);
-		h=fontMetric.getMaxDescent()+fontMetric.getMaxAscent()+fontMetric.getLeading();// getHeight();
-		BufferedImage temp=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
-		Graphics g = temp.getGraphics();
-		g.setFont(fontMetric.getFont());
-		g.setColor(c);
-		g.drawString(text,0,h-fontMetric.getMaxDescent());
-		setToImage(temp);
+		setToStringARGB(text,fontMetric,c);
 	}
-		
+			
 	public void mergeColor(int o){
 		for (int i=0;i<data.length;i++){
 			int n=data[i];
@@ -108,9 +103,16 @@ public class Floater extends IntArrayImage{
 				|  ((malpha * (o       & 0xff) + alpha*(n       & 0xff)) / 0xff);
 		}
 	}
-
-	public void clear(){	
-		for (int i=0;i<w*h;i++)
-			data[i]=0;
+	
+	public void blur(int size){
+		//blur color components independently
+		blur(size,  0x000000ff);
+		blur(size,  0x0000ff00);
+		blur(size,  0x00ff0000);
+		blur((size+1)/2,0xff000000);
+	}
+	
+	public void setToImage(BufferedImage img){
+		setToImageARGB(img);
 	}
 }

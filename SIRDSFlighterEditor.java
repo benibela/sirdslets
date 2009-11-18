@@ -3,12 +3,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 
-public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener{
+public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener, MouseMotionListener{
 	protected int mCurrentSelection=-1;
 	public void start(Object manager){
 		super.start(manager);
 		
 		mManager.addMouseListener(this);
+		mManager.addMouseMotionListener(this);
 		
 		mManager.setShowFloaterCursor(true);
 		
@@ -48,12 +49,11 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener{
 	public void mousePressed(MouseEvent e)
 	{
 		int rx=e.getX()-mLevelScroll;
-		int ry=e.getY()+mZBufferYStart;
+		int ry=e.getY()-mZBufferYStart;
 		for (int i=0;i<mLevelCuboids.size();i++)
 			if (mLevelCuboids.get(i).minx<=rx && mLevelCuboids.get(i).maxx>=rx &&	
 				mLevelCuboids.get(i).miny<=ry && mLevelCuboids.get(i).maxy>=ry){
-				mCurrentSelection=i;
-				mManager.setFloaterText("cursel","cursel: "+mCurrentSelection, 0xffddddcc);
+				setCurrentSelection(i);
 			}
 	}
 	
@@ -63,14 +63,36 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener{
 	public void mouseEntered(MouseEvent e){}
 	public void mouseClicked(MouseEvent e){}
 	
+	public void mouseDragged(MouseEvent e){
+		mouseMoved(e);
+	}
+	public void mouseMoved(MouseEvent e){
+		int x=e.getX();
+		int y=e.getY();
+		if (x<0 || y <0 || x>=mZBuffer.w || y>=mZBuffer.h) 
+			return;
+		int z=mZBuffer.data[mZBuffer.getLineIndex(y)+x];			
+		mManager.setFloaterText("mousez:","cur-z:"+z,0xffddddcc).y=mZBufferYStart+500;
+	}
+
+
+	protected void scrollLevelDelta(int delta){
+		mLevelScroll+=delta;
+		mShip.x=300-mShip.w/2+mLevelScroll;
+		mLevelEnd.x+=delta;
+	}
+	
+	protected void setCurrentSelection(int currentSelection){
+		mCurrentSelection=currentSelection;
+		mManager.setFloaterText("cursel","cursel: "+mCurrentSelection, 0xffddddcc);
+	}
 	
 	public void removeSelectedCuboid(){
 		if (mCurrentSelection==-1) return;
 		mManager.suspendRendering();
 		mLevelCuboids.remove(mCurrentSelection);
 		mManager.resumeRendering();
-		mManager.setFloaterText("cursel","cursel: -1", 0xffddddcc);
-		mCurrentSelection=-1;
+		setCurrentSelection(-1);
 	}
 	
 	private final static int cuboidDelta = 10; 
@@ -84,7 +106,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener{
 		int minz=Math.max(0,f.z-5);
 		int maxz=Math.min(ZDraw.MAXZ,f.z+5);
 		mLevelCuboids.add(new Cuboid(minx,maxx,miny,maxy,minz,maxz));
-		mCurrentSelection=mLevelCuboids.size()-1;
+		setCurrentSelection(mLevelCuboids.size()-1);
 		mManager.resumeRendering();
 	}
 	
@@ -127,24 +149,26 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener{
 			case KeyEvent.VK_X: case KeyEvent.VK_Y: case KeyEvent.VK_Z:
 				resizeSelectedCuboid(e.getKeyCode()-KeyEvent.VK_X, (e.getModifiers() & InputEvent.SHIFT_MASK)==0, (e.getModifiers() & InputEvent.CTRL_MASK)!=0);
 				break;
+			//scroll/change level
 			case KeyEvent.VK_LEFT:
 				if (ctrl && mLevel>=1) startLevel(mLevel-1);
-				else {
-					mLevelScroll+=5;
-					mShip.x=300-mShip.w/2+mLevelScroll;
-				}
+				else scrollLevelDelta(+5);
 				break;
 			case KeyEvent.VK_RIGHT:
 				if (ctrl) startLevel(mLevel+1);
-				else {
-					mLevelScroll-=5;
-					mShip.x=300-mShip.w/2+mLevelScroll;
-				}
+				else scrollLevelDelta(-5);
+				break;
+			case KeyEvent.VK_PAGE_DOWN:
+				scrollLevelDelta(-500);
+				break;
+			case KeyEvent.VK_PAGE_UP:
+				scrollLevelDelta(+500);
 				break;
 		}
 		mManager.setFloaterText("scroll","scroll: "+mLevelScroll,0xffddddcc);
 	}
-	
+
+		
 	public String getSIRDletName(){
 		return "SIRDS Flighter (Editor)";
 	}

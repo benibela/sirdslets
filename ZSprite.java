@@ -4,6 +4,7 @@ public class ZSprite extends ZDraw{
 	boolean dataVisible[];
 	
 	
+	public ZSprite(){}
 	//reads a heightmap from the given array and normalize it
 	public ZSprite(int[] heightMap, int w, int h){
 		setSize(w,h);
@@ -63,10 +64,17 @@ public class ZSprite extends ZDraw{
 			int b = getLineIndex(cy);
 			int bo = zbuffer.getLineIndex(cy+y)+x;
 			for (int cx=0; cx<w; cx++)
-				if (dataVisible[b+cx] && zbuffer.InBounds(x+cx,y+cy)){
+				if (dataVisible[b+cx] && zbuffer.inBounds(x+cx,y+cy)){
 					zbuffer.customPut(bo+cx,data[b+cx]+z);
 //					System.out.println("!");
 				}
 		}
-	}	
+	}
+
+	public void updateVisibilityData(){
+		if (dataVisible.length!=start+stride*h)
+			dataVisible=new boolean[start+stride*h];
+		for (int i=0;i<dataVisible.length;i++)
+			dataVisible[i]=true;
+	}
 }
