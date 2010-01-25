@@ -507,12 +507,16 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		if (mShowFloaterCursor==showMouse) return;
 		mShowFloaterCursor=showMouse;
 		if (mShowFloaterCursor) {
-			setFloater("~floaterCursor",createFloater("mouse.png"));
-			addMouseMotionListener(this);
-			Cursor c = getToolkit().createCustomCursor(
-				new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
-				new Point(1, 1), "Custom Cursor");
-			setCursor(c);//new Cursor(Cursor.CUSTOM_CURSOR ));//we draw our own	
+			try{
+				setFloater("~floaterCursor",createFloater("mouse.png"));
+				addMouseMotionListener(this);
+				Cursor c = getToolkit().createCustomCursor(
+					new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
+					new Point(1, 1), "Custom Cursor");
+				setCursor(c);//new Cursor(Cursor.CUSTOM_CURSOR ));//we draw our own	
+			}catch (java.lang.IndexOutOfBoundsException e){
+				System.out.println("Couldn't set cursor (error catched)");
+			}
 		} else {
 			removeFloater("~floaterCursor");
 			removeMouseMotionListener(this);
