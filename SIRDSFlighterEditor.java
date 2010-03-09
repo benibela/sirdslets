@@ -1,5 +1,3 @@
-import java.util.*;
-import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 
@@ -13,34 +11,37 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 		
 		mManager.setShowFloaterCursor(true);
 		
-		Floater f=mManager.setFloaterText("level","level: ?", 0xffddddcc);
+		Floater f=mScene.setFloaterText("level","level: ?", 0xffddddcc);
 		int lh=f.h;
-		mManager.setFloaterText("scroll","scroll: 0", 0xffddddcc).y=lh;
-		mManager.setFloaterText("cursel","cursel: -1", 0xffddddcc).y=2*lh;
-		mManager.getFloater("life").visible=false;
+		mScene.setFloaterText("scroll","scroll: 0", 0xffddddcc).y=lh;
+		mScene.setFloaterText("cursel","cursel: -1", 0xffddddcc).y=2*lh;
+		mScene.getFloater("life").visible=false;
 	
 		startLevel(0);
 	}
+	@Override
 	public void stop(){
 		super.stop();
 		mManager.removeMouseListener(this);
 	}
+	@Override
 	public void startLevel(int level){
 		super.startLevel(level);
-		mManager.setFloaterText("level","level: "+mLevel, 0xffddddcc);
+		mScene.setFloaterText("level","level: "+mLevel, 0xffddddcc);
 	}
 	protected void saveLevel(){
 		try{
 		//System.out.println(mManager.getFileURL("flighter/level"+mLevel+".ser").toString());
-			ObjectOutputStream levelStream = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(mManager.getFileURL("flighter/level"+mLevel+".ser").getFile())));
+			ObjectOutputStream levelStream = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(mScene.getFileURL("flighter/level"+mLevel+".ser").getFile())));
 			levelStream.writeObject(mLevelCuboids);
 			levelStream.close(); 		
-			mManager.showFloaterMessage("saved level "+mLevel,SIRDSAppletManager.MessageType.MESSAGE_NOTIFY);
+			mScene.showFloaterMessage("saved level "+mLevel,SceneManager.MessageType.MESSAGE_NOTIFY);
 		} catch (IOException e){
-			mManager.showFloaterMessage("Couldn't save"+":"+e.toString(),SIRDSAppletManager.MessageType.MESSAGE_ERROR);
+			mScene.showFloaterMessage("Couldn't save"+":"+e.toString(),SceneManager.MessageType.MESSAGE_ERROR);
 		}
 	}
 
+	@Override
 	public void calculateFrame(){
 		//no level processing
 		
@@ -67,12 +68,14 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 		mouseMoved(e);
 	}
 	public void mouseMoved(MouseEvent e){
-		int x=e.getX();
-		int y=e.getY();
-		if (x<0 || y <0 || x>=mZBuffer.w || y>=mZBuffer.h) 
-			return;
-		int z=mZBuffer.data[mZBuffer.getLineIndex(y)+x];			
-		mManager.setFloaterText("mousez:","cur-z:"+z,0xffddddcc).y=mZBufferYStart+500;
+		int x=e.getX()-mScene.cameraX;
+		int y=e.getY()-mScene.cameraY;
+		int z=-1;
+		for (Cuboid c: mLevelCuboids)
+			if (c.containsPoint(x, y))
+				if (c.maxz>z) z = c.maxz;
+		//int z=mZBuffer.data[mZBuffer.getLineIndex(y)+x];
+		mScene.setFloaterText("mousez:","cur-z:"+z,0xffddddcc).y=mZBufferYStart+500;
 	}
 
 
@@ -84,7 +87,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 	
 	protected void setCurrentSelection(int currentSelection){
 		mCurrentSelection=currentSelection;
-		mManager.setFloaterText("cursel","cursel: "+mCurrentSelection, 0xffddddcc);
+		mScene.setFloaterText("cursel","cursel: "+mCurrentSelection, 0xffddddcc);
 	}
 	
 	public void removeSelectedCuboid(){
@@ -123,6 +126,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 		else if (dir==2 && !minimum) c.maxz=Math.max(c.minz,Math.min(ZDraw.MAXZ,c.maxz+inc));
 	}
 	
+	@Override
 	public void keyPressed(KeyEvent e){
 		final double acceleration=1;
 		boolean ctrl=(e.getModifiers() & InputEvent.CTRL_MASK)!=0;
@@ -165,7 +169,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 				scrollLevelDelta(+500);
 				break;
 		}
-		mManager.setFloaterText("scroll","scroll: "+mLevelScroll,0xffddddcc);
+		mScene.setFloaterText("scroll","scroll: "+mLevelScroll,0xffddddcc);
 	}
 
 		

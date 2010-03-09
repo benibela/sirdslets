@@ -1,4 +1,4 @@
-public class ZSprite extends ZDraw{
+public class ZSprite extends ZDraw implements ScenePrimitive{
 	//transparent ZDraw
 	int x,y,z;
 	boolean dataVisible[];

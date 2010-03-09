@@ -16,7 +16,7 @@ import java.net.*;
 public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, KeyListener
 {
 	private SIRDSAppletManager mManager;
-	private ZDraw mZBuffer;
+	private ZSprite mZBuffer;
 	private ZDraw mDrawArea;
 	private int mWidth, mHeight;
 	private boolean mUseSIRD = true;
@@ -24,6 +24,7 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 	private int mLastMX, mLastMY;
 	private int mDrawRadius;
 	private final int mPalWidth = 40;
+	private SceneManager mScene;
 	
 	private void DrawPallette()
 	{
@@ -45,7 +46,7 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 	
 		mManager=(SIRDSAppletManager)manager;
 		
-		mManager.setDoubleBufferedZBuffer(false);
+		mScene=mManager.getSceneManager();
 		
 
 
@@ -59,27 +60,29 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		mWidth  = mManager.getSize().width;
 		mHeight = mManager.getSize().height;
 		
-		mZBuffer = mManager.getZBuffer();
-		
+		mZBuffer = new ZSprite(mScene.width, mScene.height);
+		mZBuffer.updateVisibilityData();
+		mScene.addPrimitive(mZBuffer);
+
 		mDrawArea = new ZDraw(mZBuffer.data, mWidth-mPalWidth-ZDraw.SIRDW, 
 			mHeight, ZDraw.SIRDW, mZBuffer.stride );
-		
+
 		DrawPallette();
 		
 		
-		Floater f=mManager.setFloaterText("position","Position: ",0xffddddcc);
+		Floater f=mScene.setFloaterText("position","Position: ",0xffddddcc);
 		f.z=2;
 		int lineHeight=f.h;
-		f=mManager.setFloaterText("xpos","x: ?",0xffddddcc);
+		f=mScene.setFloaterText("xpos","x: ?",0xffddddcc);
 		f.y=lineHeight;
-		f=mManager.setFloaterText("ypos","y: ?",0xffddddcc);
+		f=mScene.setFloaterText("ypos","y: ?",0xffddddcc);
 		f.y=2*lineHeight;
-		f=mManager.setFloaterText("zpos","z: ?",0xffddddcc);
+		f=mScene.setFloaterText("zpos","z: ?",0xffddddcc);
 		f.y=3*lineHeight;
-		f=mManager.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
+		f=mScene.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
 		f.y=4*lineHeight;
 
-		mManager.setFloater("apenmouse",new Floater(2*mDrawRadius,2*mDrawRadius));
+		mScene.setFloater("apenmouse",new Floater(2*mDrawRadius,2*mDrawRadius));
 		updatePenInformation();
 		//f.ignoreHeightmap=false;
 	}
@@ -149,8 +152,8 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 	}
 
 	private void updatePenInformation(){
-		mManager.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
-		Floater f=mManager.getFloater("apenmouse");
+		mScene.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
+		Floater f=mScene.getFloater("apenmouse");
 		if (2*mDrawRadius>=mZBuffer.SIRDW) return;
  		if (f.w<2*mDrawRadius || f.h<2*mDrawRadius) f.setSize(2*mDrawRadius,2*mDrawRadius);
 		f.clear();
@@ -158,11 +161,11 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		f.fillCircle(f.w/2+1,f.h/2, 2,0xff000000);
 	}
 	private void drawInformation(){
-		mManager.setFloaterText("xpos","x: "+mCurMX,0xffddddcc);
-		mManager.setFloaterText("ypos", "y: "+mCurMY,0xffddddcc);
-		mManager.setFloaterText("zpos","z: "+ mCurrentZ,0xffddddcc);
+		mScene.setFloaterText("xpos","x: "+mCurMX,0xffddddcc);
+		mScene.setFloaterText("ypos", "y: "+mCurMY,0xffddddcc);
+		mScene.setFloaterText("zpos","z: "+ mCurrentZ,0xffddddcc);
 		mManager.setFloaterCursorZ(mCurrentZ+3);
-		Floater mf=mManager.getFloater("apenmouse");
+		Floater mf=mScene.getFloater("apenmouse");
 		mf.x=mCurMX-mf.w/2;
 		mf.y=mCurMY-mf.h/2;
 		mf.z=mCurrentZ;

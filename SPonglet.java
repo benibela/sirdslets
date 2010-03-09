@@ -1,4 +1,4 @@
-
+/*
 //
 // SPonglet - A SIRDS based Pong game
 //
@@ -385,4 +385,4 @@ public class SPonglet extends Applet implements Runnable, MouseListener, MouseMo
 	{
 		return "jAbSIRD Demo - by Lewey Geselowitz - lewey@leweyg.com";
 	}
-}
+}*/
