@@ -1,13 +1,12 @@
 import java.awt.event.*;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Map;
 
-public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener, MouseMotionListener{
+public class SIRDSFlighterEditor extends SIRDSFlighter{
 	protected int mCurrentSelection=-1;
 	public void start(Object manager){
 		super.start(manager);
-		
-		mManager.addMouseListener(this);
-		mManager.addMouseMotionListener(this);
 		
 		mManager.setShowFloaterCursor(true);
 		
@@ -22,7 +21,6 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 	@Override
 	public void stop(){
 		super.stop();
-		mManager.removeMouseListener(this);
 	}
 	@Override
 	public void startLevel(int level){
@@ -32,9 +30,13 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 	protected void saveLevel(){
 		try{
 		//System.out.println(mManager.getFileURL("flighter/level"+mLevel+".ser").toString());
-			ObjectOutputStream levelStream = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(mScene.getFileURL("flighter/level"+mLevel+".ser").getFile())));
-			levelStream.writeObject(mLevelCuboids);
-			levelStream.close(); 		
+			ArrayList<Map> levelSer = new ArrayList<Map>();
+			for (JSONSerializable ser: mLevelCuboids)
+				levelSer.add(ser.jsonSerialize());
+			JSONWriter json = new JSONWriter();
+			BufferedWriter bw = new BufferedWriter(new FileWriter(mScene.getFileURL("flighter/level"+mLevel+".lev").getFile()));
+			bw.write(json.write(levelSer));
+			bw.close();
 			mScene.showFloaterMessage("saved level "+mLevel,SceneManager.MessageType.MESSAGE_NOTIFY);
 		} catch (IOException e){
 			mScene.showFloaterMessage("Couldn't save"+":"+e.toString(),SceneManager.MessageType.MESSAGE_ERROR);
@@ -42,46 +44,72 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 	}
 
 	@Override
-	public void calculateFrame(){
+	public void calculateFrame(long timeMS){
 		//no level processing
-		
-	}
 
-	public void mousePressed(MouseEvent e)
-	{
-		int rx=e.getX()-mLevelScroll;
-		int ry=e.getY()-mZBufferYStart;
-		for (int i=0;i<mLevelCuboids.size();i++)
-			if (mLevelCuboids.get(i).minx<=rx && mLevelCuboids.get(i).maxx>=rx &&	
-				mLevelCuboids.get(i).miny<=ry && mLevelCuboids.get(i).maxy>=ry){
-				setCurrentSelection(i);
-			}
-	}
-	
+		//--------------keyevents--------------------------
+		//final double acceleration=1;
+		boolean ctrl=mManager.isKeyPressed(KeyEvent.VK_CONTROL);
+		boolean shift=mManager.isKeyPressed(KeyEvent.VK_SHIFT);
 
-	public void mouseReleased(MouseEvent e){}
-	public void mouseExited(MouseEvent e){}
-	public void mouseEntered(MouseEvent e){}
-	public void mouseClicked(MouseEvent e){}
-	
-	public void mouseDragged(MouseEvent e){
-		mouseMoved(e);
-	}
-	public void mouseMoved(MouseEvent e){
-		int x=e.getX()-mScene.cameraX;
-		int y=e.getY()-mScene.cameraY;
+		if (mManager.isKeyPressed(KeyEvent.VK_A))
+			mManager.setFloaterCursorZ(mManager.getFloaterCursorZ()+1);
+
+		if (mManager.isKeyPressed(KeyEvent.VK_S))
+			if (ctrl&&shift) { //save
+				saveLevel();
+			} else //mouse control
+				mManager.setFloaterCursorZ(mManager.getFloaterCursorZ()-1);
+
+		//create
+		if (mManager.isKeyPressed(KeyEvent.VK_C))
+			addCuboidAtCursor();
+		//delete
+		if (mManager.isKeyPressed(KeyEvent.VK_D))
+			removeSelectedCuboid();
+
+		//resize
+		if (mManager.isKeyPressed(KeyEvent.VK_X) ||
+		    mManager.isKeyPressed(KeyEvent.VK_Y) ||
+		    mManager.isKeyPressed(KeyEvent.VK_Z))
+			resizeSelectedCuboid(mManager.isKeyPressed(KeyEvent.VK_X), mManager.isKeyPressed(KeyEvent.VK_Y), mManager.isKeyPressed(KeyEvent.VK_Z), shift, ctrl);
+
+		//scroll/change level
+		if (mManager.isKeyPressed(KeyEvent.VK_LEFT))
+			if (ctrl && mLevel>=1) startLevel(mLevel-1);
+			else scrollLevelDelta(+5);
+		if (mManager.isKeyPressed(KeyEvent.VK_RIGHT))
+			if (ctrl) startLevel(mLevel+1);
+			else scrollLevelDelta(-5);
+		if (mManager.isKeyPressed(KeyEvent.VK_PAGE_DOWN))
+			scrollLevelDelta(-500);
+		if (mManager.isKeyPressed(KeyEvent.VK_PAGE_UP))
+			scrollLevelDelta(+500);
+		mScene.setFloaterText("scroll","scroll: "+mLevelScroll,0xffddddcc);
+
+		//-----------------mouse events-----------------------
+		int rx=mManager.getMouseX()-mScene.cameraX;
+		int ry=mManager.getMouseX()-mScene.cameraY;
+		if (mManager.isMousePressed(MouseEvent.BUTTON1)){
+			for (int i=0;i<mLevelCuboids.size();i++)
+				if (mLevelCuboids.get(i).minx<=rx && mLevelCuboids.get(i).maxx>=rx &&
+					mLevelCuboids.get(i).miny<=ry && mLevelCuboids.get(i).maxy>=ry){
+					setCurrentSelection(i);
+				}
+		}
+
 		int z=-1;
 		for (Cuboid c: mLevelCuboids)
-			if (c.containsPoint(x, y))
+			if (c.containsPoint(rx, ry))
 				if (c.maxz>z) z = c.maxz;
 		//int z=mZBuffer.data[mZBuffer.getLineIndex(y)+x];
 		mScene.setFloaterText("mousez:","cur-z:"+z,0xffddddcc).y=mZBufferYStart+500;
 	}
-
+	
 
 	protected void scrollLevelDelta(int delta){
 		mLevelScroll+=delta;
-		mShip.x=300-mShip.w/2+mLevelScroll;
+		//mShip.x=300-mShip.w/2+mLevelScroll;
 		mLevelEnd.x+=delta;
 	}
 	
@@ -113,65 +141,24 @@ public class SIRDSFlighterEditor extends SIRDSFlighter implements MouseListener,
 		mManager.resumeRendering();
 	}
 	
-	public void resizeSelectedCuboid(int dir, boolean enlarge, boolean minimum){
+	public void resizeSelectedCuboid(boolean resizeX, boolean resizeY, boolean resizeZ, boolean enlarge, boolean minimum){
 		if (mCurrentSelection==-1) return;
 		Cuboid c = mLevelCuboids.get(mCurrentSelection);
 		int inc=enlarge?1:-1;
-		if (dir!=2) inc*=cuboidDelta;
-		if (dir==0 && minimum)       c.minx+=inc;
-		else if (dir==0 && !minimum) c.maxx+=inc;
-		else if (dir==1 &&  minimum) c.miny=Math.min(c.maxy,Math.max(0,c.miny+inc));
-		else if (dir==1 && !minimum) c.maxy=Math.max(c.miny,Math.min(mZBufferH,c.maxy+inc));
-		else if (dir==2 &&  minimum) c.minz=Math.min(c.maxz,Math.max(0,c.minz+inc));
-		else if (dir==2 && !minimum) c.maxz=Math.max(c.minz,Math.min(ZDraw.MAXZ,c.maxz+inc));
-	}
-	
-	@Override
-	public void keyPressed(KeyEvent e){
-		final double acceleration=1;
-		boolean ctrl=(e.getModifiers() & InputEvent.CTRL_MASK)!=0;
-		boolean shift=(e.getModifiers() & InputEvent.SHIFT_MASK)!=0;
-		switch  (e.getKeyCode()) {
-			case KeyEvent.VK_A:
-				mManager.setFloaterCursorZ(mManager.getFloaterCursorZ()+1);
-				break;
-			case KeyEvent.VK_S:
-				if (ctrl&&shift) { //save
-					saveLevel();
-				} else //mouse control
-					mManager.setFloaterCursorZ(mManager.getFloaterCursorZ()-1);
-				break;
-			//create
-			case KeyEvent.VK_C:
-				addCuboidAtCursor();
-				break;
-			//delete
-			case KeyEvent.VK_D:
-				removeSelectedCuboid();
-				break;
-			//resize
-			case KeyEvent.VK_X: case KeyEvent.VK_Y: case KeyEvent.VK_Z:
-				resizeSelectedCuboid(e.getKeyCode()-KeyEvent.VK_X, (e.getModifiers() & InputEvent.SHIFT_MASK)==0, (e.getModifiers() & InputEvent.CTRL_MASK)!=0);
-				break;
-			//scroll/change level
-			case KeyEvent.VK_LEFT:
-				if (ctrl && mLevel>=1) startLevel(mLevel-1);
-				else scrollLevelDelta(+5);
-				break;
-			case KeyEvent.VK_RIGHT:
-				if (ctrl) startLevel(mLevel+1);
-				else scrollLevelDelta(-5);
-				break;
-			case KeyEvent.VK_PAGE_DOWN:
-				scrollLevelDelta(-500);
-				break;
-			case KeyEvent.VK_PAGE_UP:
-				scrollLevelDelta(+500);
-				break;
+		//1-2d
+		if (resizeX)
+			if (minimum) c.minx+=inc;
+			else c.maxx+=inc;
+		if (resizeY)
+			if (minimum) c.miny=Math.min(c.maxy,Math.max(0,c.miny+inc));
+			else c.maxy=Math.max(c.miny,Math.min(mZBufferH,c.maxy+inc));
+		//3d
+		if (resizeZ){
+			inc*=cuboidDelta;
+			if (minimum) c.minz=Math.min(c.maxz,Math.max(0,c.minz+inc));
+			else c.maxz=Math.max(c.minz,Math.min(ZDraw.MAXZ,c.maxz+inc));
 		}
-		mScene.setFloaterText("scroll","scroll: "+mLevelScroll,0xffddddcc);
 	}
-
 		
 	public String getSIRDletName(){
 		return "SIRDS Flighter (Editor)";

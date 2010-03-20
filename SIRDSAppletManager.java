@@ -17,7 +17,7 @@ class TimedFloater extends Floater{
 	int timetolive;  //time until removal in ms
 }
 		
-public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener, MouseMotionListener
+public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener, MouseMotionListener, MouseListener
 {	
 	private Thread mUpdateThread;
 	//private int[] mRandData1, mRandData2;
@@ -200,6 +200,9 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		showFPS.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e){
 				infoPanel.setVisible(e.getStateChange()==ItemEvent.SELECTED);
+				infoPanel.doLayout();
+				doLayout();
+				infoPanel.doLayout();
 			}});
 		optionPanel.add(showFPS);
 
@@ -240,6 +243,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	public void init()
 	{
 		addKeyListener(this);
+		addMouseListener(this);
+		addMouseMotionListener(this);
 		
 		self=this;
 
@@ -323,11 +328,12 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		int conSlow=0;
 		while (Thread.currentThread() == mUpdateThread)
 		{
-			suspendRendering();
 			long drawstart = System.currentTimeMillis();
+			suspendRendering();
 			scene.calculateFrame(timePerFrame);
-			if (curSIRDSlet!=null) curSIRDSlet.calculateFrame();
+			if (curSIRDSlet!=null) curSIRDSlet.calculateFrame(drawstart);
 			renderer.renderFrame();
+			resumeRendering();
 			mFrameNumber++;
 
 			try
@@ -350,7 +356,6 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			catch (InterruptedException e)
 			{
 			}
-			resumeRendering();
 		}
 	}
 
@@ -365,6 +370,80 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	{
 		renderer.paint(g);
 	}
+
+
+	@Override
+	public String getAppletInfo()
+	{
+		return "jAbSIRD Demo - by Lewey Geselowitz - lewey@leweyg.com";
+	}
+	
+	public void registerSIRDSlet(SIRDSlet sirdslet){
+		sirdslets.add(sirdslet);
+	}
+	
+	
+	public void setAllowSaving(boolean allowSaving){
+		mAllowSaving=allowSaving;
+	}
+	public void setAllowLoading(boolean allowLoading){
+		mAllowLoading=allowLoading;
+	}
+	
+	public void setShowFloaterCursor(boolean showMouse){
+		if (mShowFloaterCursor==showMouse) return;
+		mShowFloaterCursor=showMouse;
+		if (mShowFloaterCursor) {
+			scene.setFloater("~floaterCursor",scene.createFloater("mouse.png"));
+			try{
+				Cursor c = getToolkit().createCustomCursor(
+					new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
+					new Point(1, 1), "Custom Cursor");
+				setCursor(c);//new Cursor(Cursor.CUSTOM_CURSOR ));//we draw our own	
+			}catch (java.lang.IndexOutOfBoundsException e){
+				System.out.println("Couldn't set cursor (error catched):"+e);
+			}
+		} else {
+			scene.removeFloater("~floaterCursor");
+		}
+	}
+
+	public void setFloaterCursorZ(int mouseZ){
+		if (!mShowFloaterCursor) return;
+		Floater f = scene.getFloater("~floaterCursor");
+		//don't check, cursor movements in higher level could be useful
+//		if (mouseZ<0) mouseZ=0;
+//		if (mouseZ>ZDraw.MAXZ) mouseZ=ZDraw.MAXZ;
+		f.z=mouseZ;
+	}
+	public int getFloaterCursorZ(){
+		if (!mShowFloaterCursor) return -1;
+		Floater f = scene.getFloater("~floaterCursor");
+		if (f==null) return -1;
+		return f.z;
+	}
+	public Floater getFloaterCursor(){
+		if (!mShowFloaterCursor) return null;
+		return scene.getFloater("~floaterCursor");
+	}
+	
+	public SceneManager getSceneManager() {
+		return scene;
+	}
+
+
+	//event cache to prevent thread problems
+	//(event listener are not called in the render thread, so it can't be
+	//passed directly to the sirdlet)
+	//This implementation is not thread-safe, therefore it could lose input
+	//events on slow computers, but an lost input event is not really problematic
+	//Frameratedrops due to event flooding and synchronization would be worse
+	private int mMouseX, mMouseY;
+	private boolean keyState[]=new boolean[256];
+	private int keyStateJustChanged[]=new int[256];
+	private boolean mouseState[]=new boolean[MouseEvent.BUTTON3+1];
+	private int mouseStateJustChanged[]=new int[MouseEvent.BUTTON3+1];
+
 
 	public void keyPressed(KeyEvent e){
 		if (e.getKeyCode()==KeyEvent.VK_ESCAPE) {
@@ -418,88 +497,94 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		} else if (e.getKeyCode()==KeyEvent.VK_ENTER){
 			renderer.setDrawSIRDS(!renderer.getDrawSIRDS());
 		}
-		
+
+		if (e.getKeyCode()>=0 && e.getKeyCode()<keyState.length){
+			keyState[e.getKeyCode()]=true;
+			keyStateJustChanged[e.getKeyCode()]=2;
+		}
+
 	}
 	public void keyReleased(KeyEvent e){
+		if (e.getKeyCode()>=0 && e.getKeyCode()<keyState.length){
+			keyState[e.getKeyCode()]=false;
+			keyStateJustChanged[e.getKeyCode()]=2;
+		}
 	}
 	public void keyTyped(KeyEvent e){
 	}
 
-	@Override
-	public String getAppletInfo()
+
+	public void mouseMoved(MouseEvent e)
 	{
-		return "jAbSIRD Demo - by Lewey Geselowitz - lewey@leweyg.com";
+		mouseDragged(e);
 	}
-	
-	public void registerSIRDSlet(SIRDSlet sirdslet){
-		sirdslets.add(sirdslet);
+
+	public void mouseDragged(MouseEvent e)
+	{
+		mMouseX=e.getX();
+		mMouseY=e.getY();
+
+		if (!mShowFloaterCursor) return;
+		Floater f = scene.getFloater("~floaterCursor");
+		f.x=e.getX();
+		f.y=e.getY();
 	}
-	
-	
-	public void setAllowSaving(boolean allowSaving){
-		mAllowSaving=allowSaving;
+
+	public void mouseClicked(MouseEvent me) {
 	}
-	public void setAllowLoading(boolean allowLoading){
-		mAllowLoading=allowLoading;
-	}
-	
-	public void setShowFloaterCursor(boolean showMouse){
-		if (mShowFloaterCursor==showMouse) return;
-		mShowFloaterCursor=showMouse;
-		if (mShowFloaterCursor) {
-			try{
-				scene.setFloater("~floaterCursor",scene.createFloater("mouse.png"));
-				addMouseMotionListener(this);
-				Cursor c = getToolkit().createCustomCursor(
-					new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
-					new Point(1, 1), "Custom Cursor");
-				setCursor(c);//new Cursor(Cursor.CUSTOM_CURSOR ));//we draw our own	
-			}catch (java.lang.IndexOutOfBoundsException e){
-				System.out.println("Couldn't set cursor (error catched)");
-			}
-		} else {
-			scene.removeFloater("~floaterCursor");
-			removeMouseMotionListener(this);
+
+	public void mousePressed(MouseEvent me) {
+		mMouseX=me.getX();
+		mMouseY=me.getY();
+		if (me.getButton()>=0 && me.getButton()<mouseState.length){
+			mouseState[me.getButton()] = true;
+			mouseStateJustChanged[me.getButton()] = 2;
 		}
 	}
 
-	public void setFloaterCursorZ(int mouseZ){
-		if (!mShowFloaterCursor) return;
-		Floater f = scene.getFloater("~floaterCursor");
-		//don't check, cursor movements in higher level could be useful
-//		if (mouseZ<0) mouseZ=0;
-//		if (mouseZ>ZDraw.MAXZ) mouseZ=ZDraw.MAXZ;
-		f.z=mouseZ;
-	}
-	public int getFloaterCursorZ(){
-		if (!mShowFloaterCursor) return -1;
-		Floater f = scene.getFloater("~floaterCursor");
-		if (f==null) return -1;
-		return f.z;
-	}
-	public Floater getFloaterCursor(){
-		if (!mShowFloaterCursor) return null;
-		return scene.getFloater("~floaterCursor");
-	}
-	
-	public void mouseDragged(MouseEvent e)
-	{
-		if (!mShowFloaterCursor) return;
-		Floater f = scene.getFloater("~floaterCursor");
-		f.x=e.getX();
-		f.y=e.getY();
-	}
-	public void mouseMoved(MouseEvent e)
-	{
-		if (!mShowFloaterCursor) return;
-		Floater f = scene.getFloater("~floaterCursor");
-		f.x=e.getX();
-		f.y=e.getY();
+	public void mouseReleased(MouseEvent me) {
+		mMouseX=me.getX();
+		mMouseY=me.getY();
+		if (me.getButton()>=0 && me.getButton()<mouseState.length){
+			mouseState[me.getButton()] = false;
+			mouseStateJustChanged[me.getButton()] = 2;
+		}
 	}
 
-	public SceneManager getSceneManager() {
-		return scene;
+	public void mouseEntered(MouseEvent me) {
 	}
 
-	
+	public void mouseExited(MouseEvent me) {
+	}
+
+
+
+
+	public int getMouseX(){
+		return mMouseX;
+	}
+	public int getMouseY(){
+		return mMouseY;
+	}
+	//these getters have side-effects (c-like)
+	//You can write isKeyPressedChanged() returns if the value of the previous isKeyPressed
+	//call is different than the value of the pre-previous isKeyPressed call
+	public boolean isKeyPressed(int vk){
+		if (vk<0 || vk>keyState.length) return false;
+		keyStateJustChanged[vk]--;
+		return keyState[vk];
+	}
+	public boolean isMousePressed(int mb){
+		if (mb<0 || mb>mouseState.length) return false;
+		mouseStateJustChanged[mb]--;
+		return mouseState[mb];
+	}
+	public boolean isKeyPressedChanged(int vk){
+		if (vk<0 || vk>keyState.length) return false;
+		return keyStateJustChanged[vk]>=1;
+	}
+	public boolean isMousePressedChanged(int mb){
+		if (mb<0 || mb>mouseState.length) return false;
+		return mouseStateJustChanged[mb]>=1;
+	}
 }

@@ -63,7 +63,7 @@ public class RendererSoftware implements SIRDSRenderer{
 		if (p instanceof Cuboid){
 			((Cuboid)p).drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
 		} else if (p instanceof ZSprite) {
-			((ZSprite)p).drawTo(mZBuffer);
+			((ZSprite)p).drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
 		} else throw new IllegalArgumentException("invalid primitive");
 	}
 	public void renderFrame(){

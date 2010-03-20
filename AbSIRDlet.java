@@ -13,7 +13,7 @@ import java.util.*;
 import java.awt.*;
 import java.net.*;
 
-public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, KeyListener
+public class AbSIRDlet implements SIRDSlet
 {
 	private SIRDSAppletManager mManager;
 	private ZSprite mZBuffer;
@@ -53,15 +53,11 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		mManager.setShowFloaterCursor(true);
 		mManager.setAllowSaving(true);
 		mManager.setAllowLoading(true);
-		mManager.addMouseListener(this);
-		mManager.addMouseMotionListener(this);
-		mManager.addKeyListener(this);
 		
 		mWidth  = mManager.getSize().width;
 		mHeight = mManager.getSize().height;
 		
 		mZBuffer = new ZSprite(mScene.width, mScene.height);
-		mZBuffer.updateVisibilityData();
 		mScene.addPrimitive(mZBuffer);
 
 		mDrawArea = new ZDraw(mZBuffer.data, mWidth-mPalWidth-ZDraw.SIRDW, 
@@ -87,69 +83,52 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		//f.ignoreHeightmap=false;
 	}
 	public void stop(){
-		mManager.removeMouseListener(this);
-		mManager.removeMouseMotionListener(this);
-		mManager.removeKeyListener(this);
 		mManager.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 	}
 	public void paintFrame(){
 	}
-	public void calculateFrame(){
-	}
-	
-	public void mousePressed(MouseEvent e)
-	{
-		if ((e.getModifiers() & InputEvent.BUTTON1_MASK)!=0)
-		{
-			mDrawArea.mIgnoreZ=(e.getModifiers() & InputEvent.CTRL_MASK)!=0;
-			mDrawArea.fillCircle( e.getX()-ZDraw.SIRDW, e.getY(), 
-				mDrawRadius, mCurrentZ );
-		}
-		mLastMX = e.getX();
-		mLastMY = e.getY();
-	}
-	
-	
-	public void mouseDragged(MouseEvent e)
-	{
-		if ((e.getModifiers() & InputEvent.BUTTON1_MASK)!=0)
-		{
-			mDrawArea.mIgnoreZ=(e.getModifiers() & InputEvent.CTRL_MASK)!=0;
-			mDrawArea.DrawLine( e.getX()-ZDraw.SIRDW, e.getY(), 
-				mLastMX-ZDraw.SIRDW, mLastMY, mDrawRadius, mCurrentZ);
-		}
-		mLastMX = e.getX();
-		mLastMY = e.getY();
-		mCurMX=mLastMX;
-		mCurMY=mLastMY;
-		drawInformation();
-	}
+	public void calculateFrame(long timeMS){
 
-	public void mouseReleased(MouseEvent e)
-	{
-		if ((e.getModifiers() & InputEvent.BUTTON1_MASK)!=0)
-		{
-			if (e.getX() + mPalWidth > mWidth)
-			{
-				mCurrentZ = (e.getY() * ZDraw.MAXZ) / mHeight;
+		if (mManager.isMousePressed(MouseEvent.BUTTON1)){
+			if (mManager.isMousePressedChanged(MouseEvent.BUTTON1)){
+				mDrawArea.mIgnoreZ=mManager.isKeyPressed(KeyEvent.VK_CONTROL);
+				mDrawArea.fillCircle( mManager.getMouseX()-ZDraw.SIRDW, mManager.getMouseY(), mDrawRadius, mCurrentZ );
+
+				if (mManager.getMouseX() + mPalWidth > mWidth)
+				{
+					mCurrentZ = (mManager.getMouseY() * ZDraw.MAXZ) / mHeight;
+				}
+			} else {
+				mDrawArea.mIgnoreZ=mManager.isKeyPressed(KeyEvent.VK_CONTROL);
+				mDrawArea.DrawLine( mManager.getMouseX()-ZDraw.SIRDW, mManager.getMouseY(),
+					mLastMX-ZDraw.SIRDW, mLastMY, mDrawRadius, mCurrentZ);
 			}
 		}
-		/*if ((e.getModifiers() & InputEvent.BUTTON2_MASK)!=0)
-		{
-			mDrawArea.mIgnoreZ = !mDrawArea.mIgnoreZ;
-		}*/
-		//if ((e.getModifiers() & InputEvent.BUTTON3_MASK)!=0)
-		//	setDisplayMode(mDisplayMode+1);
-	}
+		mLastMX = mManager.getMouseX();
+		mLastMY = mManager.getMouseY();
 
-	public void mouseExited(MouseEvent e){}
-	public void mouseEntered(MouseEvent e){}
-	public void mouseClicked(MouseEvent e){}
-	public void mouseMoved(MouseEvent e){	
-		mCurMX = e.getX();
-		mCurMY = e.getY();
-		drawInformation(); 
+		if (mCurMX!=mLastMX || mCurMY!=mLastMY){
+			mCurMX=mLastMX;
+			mCurMY=mLastMY;
+			drawInformation();
+		}
+
+		if (mManager.isKeyPressed(KeyEvent.VK_A)){
+			mCurrentZ+=1+ZDraw.MAXZ/50;
+			if (mCurrentZ>ZDraw.MAXZ) mCurrentZ=ZDraw.MAXZ;
+		} else if (mManager.isKeyPressed(KeyEvent.VK_S)){
+			mCurrentZ-=1+ZDraw.MAXZ/50;
+			if (mCurrentZ<0) mCurrentZ=0;
+		} else if (mManager.isKeyPressed(KeyEvent.VK_D)){
+			mDrawRadius+=1;
+			updatePenInformation();
+		} else if (mManager.isKeyPressed(KeyEvent.VK_F)){
+			mDrawRadius-=1;
+			updatePenInformation();
+		}
+		drawInformation();
 	}
+	
 
 	private void updatePenInformation(){
 		mScene.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
@@ -171,33 +150,6 @@ public class AbSIRDlet implements SIRDSlet, MouseListener, MouseMotionListener, 
 		mf.z=mCurrentZ;
 	}
 	
-	public void keyPressed(KeyEvent e){
-		switch (e.getKeyCode()){
-			case KeyEvent.VK_A:			
-				mCurrentZ+=1+ZDraw.MAXZ/50;
-				if (mCurrentZ>ZDraw.MAXZ) mCurrentZ=ZDraw.MAXZ;
-				break;
-			case KeyEvent.VK_S:
-				mCurrentZ-=1+ZDraw.MAXZ/50;
-				if (mCurrentZ<0) mCurrentZ=0;
-				break;
-			case KeyEvent.VK_D:			
-				mDrawRadius+=1;
-				updatePenInformation();
-				break;
-			case KeyEvent.VK_F:			
-				mDrawRadius-=1;
-				updatePenInformation();
-				break;
-			default: return;
-		}
-		drawInformation();
-	}
-	public void keyReleased(KeyEvent e){
-	}
-	public void keyTyped(KeyEvent e){
-	}
-
 	public String getSIRDletName(){	
 		return "SIRD Painter";
 	}

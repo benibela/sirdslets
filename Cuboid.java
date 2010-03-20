@@ -1,8 +1,12 @@
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.TreeMap;
 
-class Cuboid implements Serializable, ScenePrimitive{
-	static final long serialVersionUID = -6773890043854716267L;
+public class Cuboid implements ScenePrimitive, JSONSerializable{
+	//static final long serialVersionUID = -6773890043854716267L;
 	int minx, maxx, miny, maxy, minz, maxz;
 	int perspectiveOffset=32;
 	public void setSize(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz){
@@ -70,6 +74,9 @@ class Cuboid implements Serializable, ScenePrimitive{
 		if (ty<0) return false;
 		if (ty>=sprite.h) ty=sprite.h-1;
 		if (ty<fy) return false;
+
+		removeIntersection = removeIntersection && sprite.transparent;
+
 		int deltaZ=maxz-minz;
 		//check the area (fx,tx)*(fy,ty) for equal z coordinates
 		boolean result=false;
@@ -82,7 +89,7 @@ class Cuboid implements Serializable, ScenePrimitive{
 				if (x<nminx+perspectiveOffset) myz=(deltaZ*(x-nminx))/perspectiveOffset+minz;
 				else if (x>nmaxx-perspectiveOffset) myz=(deltaZ*(nmaxx-x))/perspectiveOffset+minz;
 				else myz=maxz;
-				if (sz<=myz &&  sprite.dataVisible[b+x]) {
+				if (sz<=myz && (!sprite.transparent || sprite.dataVisible[b+x])) {
 					result=true;
 					if (removeIntersection) sprite.dataVisible[b+x]=false;
 					else return true;
@@ -93,6 +100,26 @@ class Cuboid implements Serializable, ScenePrimitive{
 	}
 	public boolean containsPoint(int x, int y){
 		return minx<=x&&miny<=y && maxx>=x && maxy>=y;
+	}
+
+
+
+	public Map<String, Object> jsonSerialize(){
+		TreeMap<String,Object> tm = new TreeMap<String,Object>();
+		tm.put("type", "Cuboid");
+		tm.put("corners", new int[]{minx, miny, minz, maxx, maxy, maxz});
+		return tm;
+	}
+
+	public void jsonDeserialize(Map<String, Object> obj){
+		ArrayList<Number> c = (ArrayList<Number>) obj.get("corners");
+		assert(c.size()==6);
+		minx = c.get(0).intValue();
+		miny = c.get(1).intValue();
+		minz = c.get(2).intValue();
+		maxx = c.get(3).intValue();
+		maxy = c.get(4).intValue();
+		maxz = c.get(5).intValue();
 	}
 }
 /*

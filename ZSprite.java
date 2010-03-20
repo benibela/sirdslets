@@ -1,12 +1,14 @@
 public class ZSprite extends ZDraw implements ScenePrimitive{
 	//transparent ZDraw
 	int x,y,z;
+	boolean transparent; //transparent <=> dataVisible!=null (should be)
 	boolean dataVisible[];
 	
 	
 	public ZSprite(){}
 	//reads a heightmap from the given array and normalize it
 	public ZSprite(int[] heightMap, int w, int h){
+		transparent=true;
 		setSize(w,h);
 		readHeightMapFrom(heightMap);
 		normalizeZ();
@@ -14,12 +16,14 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 	
 	public ZSprite(int width, int height)
 	{
+		transparent=false;
 		setSize(width, height);
 	}
 	
 	public void setSize(int nw, int nh){	
 		super.setSize(nw,nh);
-		dataVisible=new boolean[start+stride*nh];
+		if (transparent)
+			dataVisible=new boolean[start+stride*nh];
 	}	
 	
 	//subtracts the z value of the first invisible point from every z-vaue
@@ -27,7 +31,7 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 		int baseZ=0;
 		int b=getLineIndex(0);
 		for (int x=0;x<w;x++)
-			if (!dataVisible[b+x]) {
+			if (transparent && !dataVisible[b+x]) {
 				baseZ=data[b+x];
 				break;
 			}
@@ -46,6 +50,7 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 	}
 	
 	public void readHeightMapFrom(int[] from){
+		assert transparent;
 		//read height data
 		super.readHeightMapFrom(from);
 		//set inverse alpha channel
@@ -57,24 +62,20 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 		}
 	}
 	
-	public void drawTo(ZDraw zbuffer){
+	public void drawTo(ZDraw zbuffer, int xo, int yo){
 	//	System.out.println("print to: " +x+"/"+y+" size: "+w+":"+h);
+		int rx=x+xo;
+		int ry=y+yo;
 		for (int cy=0; cy<h; cy++)
 		{
 			int b = getLineIndex(cy);
-			int bo = zbuffer.getLineIndex(cy+y)+x;
+			int bo = zbuffer.getLineIndex(cy+ry)+rx;
 			for (int cx=0; cx<w; cx++)
-				if (dataVisible[b+cx] && zbuffer.inBounds(x+cx,y+cy)){
+				if ((!transparent || dataVisible[b+cx]) && zbuffer.inBounds(rx+cx,ry+cy)){
 					zbuffer.customPut(bo+cx,data[b+cx]+z);
 //					System.out.println("!");
 				}
 		}
 	}
 
-	public void updateVisibilityData(){
-		if (dataVisible.length!=start+stride*h)
-			dataVisible=new boolean[start+stride*h];
-		for (int i=0;i<dataVisible.length;i++)
-			dataVisible[i]=true;
-	}
 }

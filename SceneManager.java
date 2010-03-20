@@ -1,4 +1,5 @@
 
+
 import java.awt.Color;
 import java.awt.FontMetrics;
 import java.awt.image.BufferedImage;
@@ -21,8 +22,16 @@ public class SceneManager {
 //		mZBuffer.clear();
 		primitives.clear();
 		namedPrimitives.clear();
+		/*Iterator<String> it = namedPrimitives.keySet().iterator();
+		while (it.hasNext())
+			if (!it.next().startsWith("~"))
+				it.remove();*/
 		floaters.clear();
-		namedFloaters.clear();
+		//namedFloaters.clear();
+		Iterator<String> it = namedFloaters.keySet().iterator();
+		while (it.hasNext())
+			if (!it.next().startsWith("~"))
+				it.remove();
 	}
 
 	public void calculateFrame(int timePerFrame){
@@ -59,6 +68,7 @@ public class SceneManager {
 //Base
 	public ScenePrimitive getPrimitive(int id){
 		return primitives.get(id);
+
 	}
 	public ScenePrimitive getPrimitive(String id){
 		return namedPrimitives.get(id);
@@ -69,6 +79,9 @@ public class SceneManager {
 	}
 	public void setPrimitive(String id, ScenePrimitive p){
 		namedPrimitives.put(id,p);
+	}
+	public void removePrimitive(ScenePrimitive p){
+		primitives.remove(p);
 	}
 
 
