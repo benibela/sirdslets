@@ -66,6 +66,7 @@ public class JSONWriter {
             else if (object.getClass().isArray()) array(object);
             else if (object instanceof Iterator) array((Iterator)object);
             else if (object instanceof Collection) array(((Collection)object).iterator());
+            else if (object instanceof JSONSerializable) value(((JSONSerializable)object).jsonSerialize());
             else bean(object);
             calls.pop();
         }

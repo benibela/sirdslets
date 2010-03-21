@@ -28,6 +28,7 @@ public class SceneManager {
 				it.remove();*/
 		floaters.clear();
 		//namedFloaters.clear();
+		mModifiers.clear();
 		Iterator<String> it = namedFloaters.keySet().iterator();
 		while (it.hasNext())
 			if (!it.next().startsWith("~"))
@@ -45,6 +46,9 @@ public class SceneManager {
 					tf.visible=false; //TODO: lockup docu
 			}
 		}
+
+		for (PrimitiveModifier pm: mModifiers)
+			pm.calculate(timePerFrame);
 	}
 
 	public void setCameraPosition(int x, int y, int z){
@@ -237,6 +241,13 @@ public class SceneManager {
 									img.getWidth(),
 									img.getHeight());
 		return sprite;
+	}
+
+//===========================Modifier===========================
+	private ArrayList<PrimitiveModifier> mModifiers=new ArrayList<PrimitiveModifier>();
+
+	void addPrimitiveModifier(PrimitiveModifier pm){
+		mModifiers.add(pm);
 	}
 
 }

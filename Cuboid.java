@@ -98,8 +98,38 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 		}
 		return result;
 	}
+	public boolean intersect(Cuboid o, int dx, int dy){
+		if (o.minx > maxx + dx || o.maxx < minx + dx) return false;
+		if (o.miny > maxy + dy || o.maxy < miny + dy) return false;
+		if (o.minz > maxz || o.maxz < minz) return false;
+		return true;
+	}
 	public boolean containsPoint(int x, int y){
 		return minx<=x&&miny<=y && maxx>=x && maxy>=y;
+	}
+
+
+
+//Interface implementation
+	public Vector3i centerI(){
+		return new Vector3i((minx+maxx)/2, (miny+maxy)/2, (minz+maxz)/2);
+	}
+	public void move(int x, int y, int z){
+		minx+=x;
+		maxx+=x;
+		miny+=y;
+		maxy+=y;
+		minz+=z;
+		maxz+=z;
+	}
+
+	public void moveTo(Vector3i to){
+		Vector3i center=centerI();
+		move(to.x-center.x,to.y-center.y,to.z-center.z);
+	}
+	public void moveTo(int x, int y, int z){
+		Vector3i center=centerI();
+		move(x-center.x,y-center.y,z-center.z);
 	}
 
 
@@ -111,8 +141,8 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 		return tm;
 	}
 
-	public void jsonDeserialize(Map<String, Object> obj){
-		ArrayList<Number> c = (ArrayList<Number>) obj.get("corners");
+	public void jsonDeserialize(Object obj){
+		ArrayList<Number> c = (ArrayList<Number>) ((Map<String, Object>)obj).get("corners");
 		assert(c.size()==6);
 		minx = c.get(0).intValue();
 		miny = c.get(1).intValue();

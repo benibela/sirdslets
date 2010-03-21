@@ -32,6 +32,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private SIRDSlet curSIRDSlet=null;
 	private ArrayList<SIRDSlet> sirdslets=new ArrayList<SIRDSlet>();
 
+	private boolean mPauseScene=true;
 	private boolean mAllowLoading=false;
 	private boolean mAllowSaving=false;
 	private boolean mShowFloaterCursor=false;
@@ -218,9 +219,10 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 				}
 			}});
 		optionPanel.add(freeze);
-		Button close=new Button("close");
+		Button close=new Button("close menu");
 		close.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
+				mPauseScene=false;
 				startPanel.setVisible(false);
 				optionPanel.setVisible(false);
 				self.requestFocus();
@@ -298,6 +300,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			curSIRDSlet=null;
 		}
 		scene.clear();
+		mPauseScene=false;
 		startPanel.setVisible(false);
 		optionPanel.setVisible(false);
 		requestFocus();
@@ -326,12 +329,16 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		//int curTimePerFrameRate=0;
 		//int lastFrameTime=System.currentTimeMillis();
 		int conSlow=0;
+		long totalTime=0;
 		while (Thread.currentThread() == mUpdateThread)
 		{
 			long drawstart = System.currentTimeMillis();
 			suspendRendering();
-			scene.calculateFrame(timePerFrame);
-			if (curSIRDSlet!=null) curSIRDSlet.calculateFrame(drawstart);
+			if  (!mPauseScene){
+				totalTime+=timePerFrame;
+				scene.calculateFrame(timePerFrame);
+				if (curSIRDSlet!=null) curSIRDSlet.calculateFrame(totalTime);
+			}
 			renderer.renderFrame();
 			resumeRendering();
 			mFrameNumber++;
@@ -450,6 +457,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			requestFocus();
 			optionPanel.setVisible(!optionPanel.isVisible());
 			startPanel.setVisible(optionPanel.isVisible());
+			mPauseScene=optionPanel.isVisible();
 		} else if (e.getKeyCode()==KeyEvent.VK_O && (e.getModifiers() & InputEvent.CTRL_MASK)!=0 && mAllowLoading) {
 			javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
 			int returnVal = chooser.showOpenDialog(this);

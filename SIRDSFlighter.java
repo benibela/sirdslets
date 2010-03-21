@@ -26,10 +26,13 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
 	private int mInitialLife, mCurrentLife;
 	protected ArrayList<Cuboid> mShoots;
+	protected long mCurTime,mLastShoot = 0;
+	protected int mShootTimeout, mShootCount;
 	//World
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<Cuboid> mLevelCuboids;
+	protected Map<Object,PrimitiveModifier> mLevelModifier;
 
 
 	public void start(Object manager){
@@ -37,7 +40,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mScene=mManager.getSceneManager();
 
 		mZBufferYStart=(mScene.height-mZBufferH)/2;
-				
+
+		mShootTimeout = 450;
+		mShootCount = 0;
 		startLevel(1);
 	}
 	protected void startLevel(int level){
@@ -75,6 +80,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			ArrayList<Object> levelJSON = (ArrayList<Object>) levelJSONR;
 			br.close();
 			mLevelCuboids=new ArrayList<Cuboid>();
+			mLevelModifier=new HashMap<Object, PrimitiveModifier>();
 			for (Object o: levelJSON)
 				if (o instanceof Map) {
 					Map<String, Object> m = (Map<String, Object>)o;
@@ -82,6 +88,13 @@ public class SIRDSFlighter implements SIRDSlet	{
 						Cuboid c=new Cuboid();
 						c.jsonDeserialize(m);
 						mLevelCuboids.add(c);
+						mScene.addPrimitive(c);
+						if (m.containsKey("mover")) {
+							PrimitiveMover pm=new PrimitiveMover(c);
+							pm.jsonDeserialize(m.get("mover"));
+							mScene.addPrimitiveModifier(pm);
+							mLevelModifier.put(c, pm);
+						}
 					}
 				}
 			/*
@@ -93,9 +106,6 @@ public class SIRDSFlighter implements SIRDSlet	{
 			mLevelCuboids=new ArrayList<Cuboid>();
 			mScene.setFloaterText("zerror","Level "+level+" missing").y=mScene.height/2;
 		}
-
-		for (ScenePrimitive p: mLevelCuboids)
-			mScene.addPrimitive(p);
 
 		mLevelLength=0;
 		for (Cuboid c: mLevelCuboids)
@@ -138,6 +148,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			c.drawTo(mZBuffer,mLevelScroll,mZBufferYStart);
 	}*/
 	public void calculateFrame(long time){
+		mCurTime=time;
 		//---------------------keyinput------------------------
 		final double acceleration=1;
 		Vector3d mShipA=new Vector3d();
@@ -205,7 +216,14 @@ public class SIRDSFlighter implements SIRDSlet	{
 			if (c.maxx>mScene.width+mScene.cameraX){
 				mShoots.remove(i);
 				mScene.removePrimitive(c);
+				break;
 			}
+			for (Cuboid d: mLevelCuboids)
+				if (c.intersect(d, -20, 0)){
+					mShoots.remove(i);
+					mScene.removePrimitive(c);
+					break;
+				}
 		}
 
 
@@ -227,8 +245,6 @@ public class SIRDSFlighter implements SIRDSlet	{
 			mShipP.x+=10;
 		}
 		mScene.setCameraPosition(-mLevelScroll, -(mScene.height-mZBufferH)/2, 0);
-
-
 	}
 	
 	private void updateLife(){
@@ -265,8 +281,13 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 
 	private void shipFire(){
+		if (mCurTime - mLastShoot < mShootTimeout)
+			return;
+		mLastShoot=mCurTime;
 		Cuboid fire=new Cuboid();
 		int ox=mShip.x, oy=mShip.y, oz=mShip.z;
+		//if ((mShootCount & 1) != 0) oy=mShip.y+mShip.h;
+		oy=mShip.y+mShip.h/2;
 		int sx=60, sy=16, sz=8;
 		fire.minx=ox-sx/2;
 		fire.miny=oy-sy/2;
@@ -276,6 +297,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		fire.maxz=Math.min(ZDraw.MAXZ, oz+sz/2);
 		mScene.addPrimitive(fire);
 		mShoots.add(fire);
+		mShootCount++;
 	}
 	
 	public String getSIRDletName(){

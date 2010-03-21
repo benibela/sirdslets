@@ -1,4 +1,7 @@
-class Vector3d{
+
+import java.util.ArrayList;
+
+class Vector3d implements JSONSerializable{
 	public double x,y,z;
 	public Vector3d(){
 		x=0;
@@ -15,6 +18,11 @@ class Vector3d{
 		y=old.y;
 		z=old.z;
 	}
+	public Vector3d(final Vector3i old){
+		x=old.x;
+		y=old.y;
+		z=old.z;
+	}
 	public Vector3d abs(){
 		if (x<0) x=-x;
 		if (y<0) y=-y;
@@ -22,6 +30,12 @@ class Vector3d{
 		return this;
 	}
 	public Vector3d add(final Vector3d v){
+		x+=v.x;
+		y+=v.y;
+		z+=v.z;
+		return this;
+	}
+	public Vector3d add(final Vector3i v){
 		x+=v.x;
 		y+=v.y;
 		z+=v.z;
@@ -45,10 +59,50 @@ class Vector3d{
 		z*=v.z;
 		return this;
 	}
+	public Vector3d round(){
+		x=Math.round(x);
+		y=Math.round(y);
+		z=Math.round(z);
+		return this;
+	}
+	public Vector3d blend(double alphaThis, Vector3d other){
+		x=alphaThis*x + (1-alphaThis)*other.x;
+		y=alphaThis*y + (1-alphaThis)*other.y;
+		z=alphaThis*z + (1-alphaThis)*other.z;
+		return this;
+	}
+	public Vector3d cloneBlend(double alphaThis, Vector3d other){
+		return clone().blend(alphaThis, other);
+	}
+	public Vector3d blend(double alphaThis, Vector3i other){
+		x=alphaThis*x + (1-alphaThis)*other.x;
+		y=alphaThis*y + (1-alphaThis)*other.y;
+		z=alphaThis*z + (1-alphaThis)*other.z;
+		return this;
+	}
+	public Vector3d cloneBlend(double alphaThis, Vector3i other){
+		return clone().blend(alphaThis, other);
+	}
+	public Vector3i toVec3i(){
+		return new Vector3i(this);
+	}
 	public double length(){
 		return Math.sqrt(x*x+y*y+z*z);
 	}
 	public Vector3d clone(){
 		return new Vector3d(this);
 	}
+
+
+	public Object jsonSerialize() {
+		return new double[]{x,y,z};
+	}
+
+	public void jsonDeserialize(Object obj) {
+		ArrayList<Number> aln = (ArrayList<Number>)obj;
+		x=aln.get(0).doubleValue();
+		y=aln.get(1).doubleValue();
+		z=aln.get(2).doubleValue();
+	}
+
 }

@@ -78,4 +78,26 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 		}
 	}
 
+
+
+	public Vector3i centerI(){
+		return new Vector3i(x,y,z);
+	}
+	public void move(int x, int y, int z){
+		this.x+=x;
+		this.y+=y;
+		this.z+=z;
+	}
+
+	public void moveTo(Vector3i to){
+		this.x=to.x;
+		this.y=to.y;
+		this.z=to.z;
+	}
+	public void moveTo(int x, int y, int z){
+		this.x=x;
+		this.y=y;
+		this.z=z;
+	}
+
 }

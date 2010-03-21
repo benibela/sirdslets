@@ -2,6 +2,8 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Map;
+import javax.swing.JOptionPane;
+
 
 public class SIRDSFlighterEditor extends SIRDSFlighter{
 	protected int mCurrentSelection=-1;
@@ -30,9 +32,13 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	protected void saveLevel(){
 		try{
 		//System.out.println(mManager.getFileURL("flighter/level"+mLevel+".ser").toString());
-			ArrayList<Map> levelSer = new ArrayList<Map>();
-			for (JSONSerializable ser: mLevelCuboids)
-				levelSer.add(ser.jsonSerialize());
+			ArrayList<Object> levelSer = new ArrayList<Object>();
+			for (JSONSerializable ser: mLevelCuboids){
+				Map<String, Object> map= (Map<String,Object>)ser.jsonSerialize();
+				if (mLevelModifier.containsKey(ser))
+					map.put("mover", ((JSONSerializable) mLevelModifier.get(ser)).jsonSerialize());
+				levelSer.add(map);
+			}
 			JSONWriter json = new JSONWriter();
 			BufferedWriter bw = new BufferedWriter(new FileWriter(mScene.getFileURL("flighter/level"+mLevel+".lev").getFile()));
 			bw.write(json.write(levelSer));
@@ -74,13 +80,28 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		    mManager.isKeyPressed(KeyEvent.VK_Z))
 			resizeSelectedCuboid(mManager.isKeyPressed(KeyEvent.VK_X), mManager.isKeyPressed(KeyEvent.VK_Y), mManager.isKeyPressed(KeyEvent.VK_Z), shift, ctrl);
 
+		if (mManager.isKeyPressed(KeyEvent.VK_M) && mManager.isKeyPressedChanged(KeyEvent.VK_M)){
+			ScenePrimitive curSel=mLevelCuboids.get(mCurrentSelection);
+			PrimitiveModifier mod=mLevelModifier.containsKey(curSel)?mLevelModifier.get(curSel):null;
+			String s = (String)JOptionPane.showInputDialog(null,"Mover:","",JOptionPane.PLAIN_MESSAGE,null,null,mod!=null?(new JSONWriter()).write(mod.jsonSerialize()):"");
+			if (s==null || s.equals("")) mLevelModifier.remove(curSel);
+			else {
+				if (mod!=null) mod.jsonDeserialize((new JSONReader()).read(s));
+				else {
+					mod=new PrimitiveMover();
+					mod.jsonDeserialize((new JSONReader()).read(s));
+					mLevelModifier.put(curSel, mod);
+				}
+			}
+		}
+
 		//scroll/change level
 		if (mManager.isKeyPressed(KeyEvent.VK_LEFT))
 			if (ctrl && mLevel>=1) startLevel(mLevel-1);
-			else scrollLevelDelta(+5);
+			else scrollLevelDelta(+15);
 		if (mManager.isKeyPressed(KeyEvent.VK_RIGHT))
 			if (ctrl) startLevel(mLevel+1);
-			else scrollLevelDelta(-5);
+			else scrollLevelDelta(-15);
 		if (mManager.isKeyPressed(KeyEvent.VK_PAGE_DOWN))
 			scrollLevelDelta(-500);
 		if (mManager.isKeyPressed(KeyEvent.VK_PAGE_UP))
@@ -88,14 +109,17 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		mScene.setFloaterText("scroll","scroll: "+mLevelScroll,0xffddddcc);
 
 		//-----------------mouse events-----------------------
-		int rx=mManager.getMouseX()-mScene.cameraX;
-		int ry=mManager.getMouseX()-mScene.cameraY;
+		int rx=mManager.getMouseX()+mScene.cameraX;
+		int ry=mManager.getMouseY()+mScene.cameraY;
 		if (mManager.isMousePressed(MouseEvent.BUTTON1)){
+			int j=-1;
 			for (int i=0;i<mLevelCuboids.size();i++)
 				if (mLevelCuboids.get(i).minx<=rx && mLevelCuboids.get(i).maxx>=rx &&
-					mLevelCuboids.get(i).miny<=ry && mLevelCuboids.get(i).maxy>=ry){
-					setCurrentSelection(i);
+					mLevelCuboids.get(i).miny<=ry && mLevelCuboids.get(i).maxy>=ry &&
+					(j==-1 || mLevelCuboids.get(i).maxz>mLevelCuboids.get(j).maxz)){
+					j=i;
 				}
+			setCurrentSelection(j);
 		}
 
 		int z=-1;
@@ -103,14 +127,13 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 			if (c.containsPoint(rx, ry))
 				if (c.maxz>z) z = c.maxz;
 		//int z=mZBuffer.data[mZBuffer.getLineIndex(y)+x];
-		mScene.setFloaterText("mousez:","cur-z:"+z,0xffddddcc).y=mZBufferYStart+500;
+		mScene.setFloaterText("mousez:",rx+"/"+ry+"/"+z,0xffddddcc).y=mZBufferYStart+500;
 	}
 	
 
 	protected void scrollLevelDelta(int delta){
 		mLevelScroll+=delta;
-		//mShip.x=300-mShip.w/2+mLevelScroll;
-		mLevelEnd.x+=delta;
+		mScene.cameraX=-mLevelScroll;
 	}
 	
 	protected void setCurrentSelection(int currentSelection){
