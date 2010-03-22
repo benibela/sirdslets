@@ -19,6 +19,9 @@ public class SceneManager {
 	private FontMetrics mFontMetrics;
 
 	public void clear(){
+		cameraX=0;
+		cameraY=0;
+		cameraZ=0;
 //		mZBuffer.clear();
 		primitives.clear();
 		namedPrimitives.clear();

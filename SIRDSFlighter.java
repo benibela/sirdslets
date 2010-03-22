@@ -149,6 +149,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}*/
 	public void calculateFrame(long time){
 		mCurTime=time;
+
+		if (mCurrentLife<=0){
+			//DEAD
+			return;
+		}
+
 		//---------------------keyinput------------------------
 		final double acceleration=1;
 		Vector3d mShipA=new Vector3d();
@@ -232,7 +238,10 @@ public class SIRDSFlighter implements SIRDSlet	{
 		boolean coll=false;
 		for (Cuboid c: mLevelCuboids)	
 			coll|=c.intersect(mShip,0,0,true);
-		if (coll) updateLife();
+		if (coll) {
+			updateLife();
+			if (mCurrentLife<=0) return; //game end
+		}
 
 
 		if (mShip.x > mLevelLength + 100 + mLevelEnd.w) startLevel(mLevel+1);
@@ -248,6 +257,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 	
 	private void updateLife(){
+		if (mCurrentLife<=0) return;
+
 		Floater life=mScene.getFloater("life");
 		if (life==null) {
 			life=mScene.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
@@ -261,10 +272,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 			for (int x=0;x<mShip.w;x++)
 				if (mShip.dataVisible[b+x]) mCurrentLife+=1;
 		}
-		
+		mCurrentLife=mCurrentLife-mInitialLife/2;
+
 		int padding=1;
 		int len=life.w-2*padding;
-		int healthyEnd=len*(mCurrentLife-mInitialLife/2)*2/mInitialLife+padding;
+		int healthyEnd=len*(mCurrentLife)*2/mInitialLife+padding;
 		for (int x=0; x<life.w;x++){
 			int b=life.getLineIndex(padding);
 			int color=0xffeeeeee;
@@ -277,6 +289,19 @@ public class SIRDSFlighter implements SIRDSlet	{
 				life.data[b+x]=color;
 				b+=life.stride;
 			}
+		}
+
+		if (mCurrentLife<=0) {
+			//You died now
+			mScene.clear();
+
+			ZSprite mes=mScene.setZSprite("mes",new ZSprite());
+			mes.setToString("YOU\nDIED",mManager.getGraphics().getFontMetrics(
+			//new Font("Arial Black",Font.BOLD,100)),0,15);
+			new Font("Arial Black",Font.BOLD,150)),0,15);
+		//mLevelEnd.rotate90R();
+			mes.x=(mScene.width-mes.w)/2;
+			mes.y=(mScene.height-mes.h)/2;
 		}
 	}
 

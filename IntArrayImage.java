@@ -181,13 +181,20 @@ public class IntArrayImage{
 	}
 
 	public void setToStringARGB(String text, FontMetrics fontMetric, Color c){
-		w=fontMetric.stringWidth(text);
-		h=fontMetric.getMaxDescent()+fontMetric.getMaxAscent()+fontMetric.getLeading();// getHeight();
+		int lineHeight=fontMetric.getMaxDescent()+fontMetric.getMaxAscent()+fontMetric.getLeading();// getHeight();
+
+		String[] lines=text.split("\n");
+		w=0;
+		for (int i=0;i<lines.length;i++)
+			w=Math.max(w,fontMetric.stringWidth(lines[i]));
+		h=lines.length*lineHeight;
+		
 		BufferedImage temp=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
 		Graphics g = temp.getGraphics();
 		g.setFont(fontMetric.getFont());
 		g.setColor(c);
-		g.drawString(text,0,h-fontMetric.getMaxDescent());
+		for (int i=0;i<lines.length;i++)
+			g.drawString(lines[i],0,-fontMetric.getMaxDescent()+(i+1)*lineHeight);
 		setToImageARGB(temp);
 	}
 
