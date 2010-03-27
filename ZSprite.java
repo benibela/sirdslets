@@ -2,6 +2,7 @@
 import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 	//transparent ZDraw
@@ -125,7 +126,10 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 	}
 
 	public Object jsonSerialize(){
-		return null;
+		TreeMap<String,Object> tm = new TreeMap<String,Object>();
+		tm.put("type", "ZSprite");
+		tm.put("position", new int[]{x, y, z});
+		return tm;
 	}
 	public void jsonDeserialize(Object obj){
 		Map<String, Object> map = ((Map<String, Object>)obj);

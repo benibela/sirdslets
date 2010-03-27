@@ -38,7 +38,13 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 				JSONSerializable ser=mLevelPrimitives.get(i);
 				Map<String, Object> map= (Map<String,Object>)ser.jsonSerialize();
 				if (mLevelModifier.get(i)!=null)
-					map.put("mover", mLevelModifier.get(i));
+					map.put("modifier", mLevelModifier.get(i));
+				if (ser instanceof ZSprite)
+					for (Map.Entry<String, ZSprite> e: mImageCache.entrySet())
+						if (e.getValue().data==((ZSprite)ser).data){
+							map.put("image",e.getKey());
+							break;
+						}
 				levelSer.add(map);
 			}
 			JSONWriter json = new JSONWriter();

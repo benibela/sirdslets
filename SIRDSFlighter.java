@@ -88,9 +88,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 					ScenePrimitive sp=null;
 					if ("Cuboid".equals(type)) sp=new Cuboid();
 					else if ("ZSprite".equals(type)) {
-						String imageName="flighter/"+(String)m.get("image");
+						String imageName=(String)m.get("image");
 						if (!mImageCache.containsKey(imageName))
-							mImageCache.put(imageName, mScene.createZSprite(imageName));
+							mImageCache.put(imageName, mScene.createZSprite("flighter/"+imageName));
 						sp=((ZSprite)mImageCache.get(imageName)).fastClone();
 					} else throw new IllegalArgumentException("invalid level object");
 					sp.jsonDeserialize(m);
@@ -188,7 +188,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShipA.z-=mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)?0.05:0;
 		mShipA.z+=mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)?0.05:0;
 
-		if (mManager.isKeyPressed(KEY_SHIP_FIRE))
+		if (mManager.isKeyPressed(KEY_SHIP_FIRE) || mManager.isKeyPressedChanged(KEY_SHIP_FIRE))
 			shipFire();
 
 		//-----------------move user ship----------------------
