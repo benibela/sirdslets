@@ -1,4 +1,9 @@
-public class ZSprite extends ZDraw implements ScenePrimitive{
+
+import java.sql.Struct;
+import java.util.ArrayList;
+import java.util.Map;
+
+public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 	//transparent ZDraw
 	int x,y,z;
 	boolean transparent; //transparent <=> dataVisible!=null (should be)
@@ -19,14 +24,28 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 		transparent=false;
 		setSize(width, height);
 	}
-	
+
+	//O(1) shared copy (should never be modified)
+	public ZSprite fastClone(){
+		ZSprite res = new ZSprite();
+		res.data = data;
+		res.w=w;
+		res.h=h;
+		res.start=start;
+		res.stride=stride;
+		res.transparent = transparent;
+		res.dataVisible = dataVisible;
+		return res;
+	}
+
+	@Override
 	public void setSize(int nw, int nh){	
 		super.setSize(nw,nh);
 		if (transparent)
 			dataVisible=new boolean[start+stride*nh];
 	}	
 	
-	//subtracts the z value of the first invisible point from every z-vaue
+	//subtracts the z value of the first invisible point (!!!!!!!) from every z-vaue
 	public void normalizeZ(){
 		int baseZ=0;
 		int b=getLineIndex(0);
@@ -64,13 +83,18 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 	
 	public void drawTo(ZDraw zbuffer, int xo, int yo){
 	//	System.out.println("print to: " +x+"/"+y+" size: "+w+":"+h);
-		int rx=x+xo;
-		int ry=y+yo;
-		for (int cy=0; cy<h; cy++)
+		int fx=0;
+		int fy=0;
+		int tx=w;
+		int ty=h;
+
+		int rx=x+xo-fx;//relativ offset (local->global system)
+		int ry=y+yo-fy;
+		for (int cy=fy; cy<ty; cy++)
 		{
 			int b = getLineIndex(cy);
 			int bo = zbuffer.getLineIndex(cy+ry)+rx;
-			for (int cx=0; cx<w; cx++)
+			for (int cx=fx; cx<tx; cx++)
 				if ((!transparent || dataVisible[b+cx]) && zbuffer.inBounds(rx+cx,ry+cy)){
 					zbuffer.customPut(bo+cx,data[b+cx]+z);
 //					System.out.println("!");
@@ -98,6 +122,18 @@ public class ZSprite extends ZDraw implements ScenePrimitive{
 		this.x=x;
 		this.y=y;
 		this.z=z;
+	}
+
+	public Object jsonSerialize(){
+		return null;
+	}
+	public void jsonDeserialize(Object obj){
+		Map<String, Object> map = ((Map<String, Object>)obj);
+		assert ("ZSprite".equals( map.get("type")));
+		ArrayList<Number> p = (ArrayList<Number>) map.get("position");
+		x=p.get(0).intValue();
+		y=p.get(1).intValue();
+		z=p.get(2).intValue();
 	}
 
 }

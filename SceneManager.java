@@ -252,5 +252,8 @@ public class SceneManager {
 	void addPrimitiveModifier(PrimitiveModifier pm){
 		mModifiers.add(pm);
 	}
+	void removePrimitiveModifier(PrimitiveModifier pm){
+		mModifiers.remove(pm);
+	}
 
 }

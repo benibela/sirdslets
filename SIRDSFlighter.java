@@ -31,9 +31,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 	//World
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
-	protected ArrayList<Cuboid> mLevelCuboids;
-	protected Map<Object,PrimitiveModifier> mLevelModifier;
-
+	protected ArrayList<ScenePrimitive> mLevelPrimitives;
+	protected ArrayList<ArrayList<PrimitiveModifier>> mLevelModifier;
+	protected HashMap<String, ZSprite> mImageCache = new HashMap<String, ZSprite>();
 
 	public void start(Object manager){
 		mManager=(SIRDSAppletManager)manager;
@@ -79,37 +79,60 @@ public class SIRDSFlighter implements SIRDSlet	{
 			Object levelJSONR = json.read(temp);
 			ArrayList<Object> levelJSON = (ArrayList<Object>) levelJSONR;
 			br.close();
-			mLevelCuboids=new ArrayList<Cuboid>();
-			mLevelModifier=new HashMap<Object, PrimitiveModifier>();
+			mLevelPrimitives=new ArrayList<ScenePrimitive>();
+			mLevelModifier=new ArrayList<ArrayList<PrimitiveModifier>>();
 			for (Object o: levelJSON)
 				if (o instanceof Map) {
 					Map<String, Object> m = (Map<String, Object>)o;
-					if ("Cuboid".equals(m.get("type"))) {
-						Cuboid c=new Cuboid();
-						c.jsonDeserialize(m);
-						mLevelCuboids.add(c);
-						mScene.addPrimitive(c);
-						if (m.containsKey("mover")) {
-							PrimitiveMover pm=new PrimitiveMover(c);
-							pm.jsonDeserialize(m.get("mover"));
-							mScene.addPrimitiveModifier(pm);
-							mLevelModifier.put(c, pm);
+					String type=(String)m.get("type");
+					ScenePrimitive sp=null;
+					if ("Cuboid".equals(type)) sp=new Cuboid();
+					else if ("ZSprite".equals(type)) {
+						String imageName="flighter/"+(String)m.get("image");
+						if (!mImageCache.containsKey(imageName))
+							mImageCache.put(imageName, mScene.createZSprite(imageName));
+						sp=((ZSprite)mImageCache.get(imageName)).fastClone();
+					} else throw new IllegalArgumentException("invalid level object");
+					sp.jsonDeserialize(m);
+					mLevelPrimitives.add(sp);
+					mScene.addPrimitive(sp);
+					ArrayList<PrimitiveModifier> apm=null;
+					if (m.containsKey("modifier")) {
+						apm=new ArrayList<PrimitiveModifier>();
+						ArrayList<Object> pmser=(ArrayList<Object>)m.get("modifier");
+						for (Object p: pmser){
+							Map<String, Object> n = (Map<String, Object>)p;
+							String ntype = (String)n.get("type");
+							PrimitiveModifier mod;
+							if (ntype.equals("PrimitiveMover")) mod=new PrimitiveMover(sp);
+							else if (ntype.equals("PrimitiveAnimator")) mod=new PrimitiveAnimator(sp);
+							else throw new IllegalArgumentException("invalid modifier object");
+							mod.jsonDeserialize(n);
+							mScene.addPrimitiveModifier(mod);
+							apm.add(mod);
 						}
 					}
+					mLevelModifier.add(apm);
 				}
 			/*
 			ObjectInputStream levelStream = new ObjectInputStream(new BufferedInputStream(mScene.getFileURL("flighter/level"+level+".ser").openStream()));
 			mLevelCuboids = (ArrayList<Cuboid>) levelStream.readObject( );
 			if (mLevelCuboids==null) throw new ClassNotFoundException();
 			levelStream.close(); */
+		} catch(IllegalArgumentException e){
+			mLevelPrimitives=new ArrayList<ScenePrimitive>();
+			mLevelModifier=new ArrayList<ArrayList<PrimitiveModifier>>();
+			mScene.setFloaterText("zerror","error:"+e.getMessage()).y=mScene.height/2;
 		} catch (Exception e){
-			mLevelCuboids=new ArrayList<Cuboid>();
+			mLevelPrimitives=new ArrayList<ScenePrimitive>();
+			mLevelModifier=new ArrayList<ArrayList<PrimitiveModifier>>();
 			mScene.setFloaterText("zerror","Level "+level+" missing").y=mScene.height/2;
 		}
 
 		mLevelLength=0;
-		for (Cuboid c: mLevelCuboids)
-			if (c.maxx>mLevelLength) mLevelLength=c.maxx;
+		for (ScenePrimitive sp: mLevelPrimitives)
+			if (sp instanceof  Cuboid)
+				if (((Cuboid)sp).maxx>mLevelLength) mLevelLength=((Cuboid)sp).maxx;
 			
 		mLevelEnd=mScene.setZSprite("levelEnd",new ZSprite());
 		mLevelEnd.setToString("Level "+(level+1),mManager.getGraphics().getFontMetrics(
@@ -224,20 +247,30 @@ public class SIRDSFlighter implements SIRDSlet	{
 				mScene.removePrimitive(c);
 				break;
 			}
-			for (Cuboid d: mLevelCuboids)
-				if (c.intersect(d, -20, 0)){
-					mShoots.remove(i);
-					mScene.removePrimitive(c);
-					break;
-				}
+			for (int j=0;j<mLevelPrimitives.size();j++)
+				if (mLevelPrimitives.get(j) instanceof Cuboid){
+					if (c.intersect(((Cuboid)mLevelPrimitives.get(j)), -20, 0)){
+						mShoots.remove(i);
+						mScene.removePrimitive(c);
+						break;
+					}
+				} else if (mLevelPrimitives.get(j) instanceof ZSprite)
+					if (c.intersect(((ZSprite)mLevelPrimitives.get(j)), 0, 0)){
+						mShoots.remove(i);
+						mScene.removePrimitive(c);
+						mScene.removePrimitive(mLevelPrimitives.get(j));
+						break;
+					}
+			
 		}
 
 
 
 		//--------------calculate collisions ship/geometry-------------
 		boolean coll=false;
-		for (Cuboid c: mLevelCuboids)	
-			coll|=c.intersect(mShip,0,0,true);
+		for (ScenePrimitive sp: mLevelPrimitives)
+			if (sp instanceof Cuboid)
+				coll|=((Cuboid)sp).intersect(mShip,0,0,true);
 		if (coll) {
 			updateLife();
 			if (mCurrentLife<=0) return; //game end

@@ -54,6 +54,9 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 				else map.customPut(b+x, maxz);
 		}
 	}
+	public boolean intersect(ZSprite sprite, int dx, int dy){
+		return intersect(sprite, dx, dy, false);
+	}
 	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersection){
 		//transform in the local coordinates of the sprite
 		int nminx=minx+dx-sprite.x;
@@ -134,7 +137,7 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 
 
 
-	public Map<String, Object> jsonSerialize(){
+	public Object jsonSerialize(){
 		TreeMap<String,Object> tm = new TreeMap<String,Object>();
 		tm.put("type", "Cuboid");
 		tm.put("corners", new int[]{minx, miny, minz, maxx, maxy, maxz});

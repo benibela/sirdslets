@@ -1,4 +1,4 @@
-public interface ScenePrimitive{
+public interface ScenePrimitive extends JSONSerializable{
     //marks object as drawable
 
 

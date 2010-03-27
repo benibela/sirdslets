@@ -29,6 +29,13 @@ public class IntArrayImage{
 		stride=w;
 	}
 
+	public void setROI(int x, int y, int width, int height){
+		start = 0; //reset to default origin
+		start = getIndex(x, y);
+		w = width;
+		h = height;
+	}
+
 	public void clear()
 	{
 		int b;
