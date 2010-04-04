@@ -43,7 +43,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		mShootTimeout = 450;
 		mShootCount = 0;
-		startLevel(1);
+		startLevel(2);
 	}
 	protected void startLevel(int level){
 		mScene.clear();
@@ -259,6 +259,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 						mShoots.remove(i);
 						mScene.removePrimitive(c);
 						mScene.removePrimitive(mLevelPrimitives.get(j));
+						mLevelPrimitives.remove(j);
 						break;
 					}
 			
@@ -271,6 +272,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 		for (ScenePrimitive sp: mLevelPrimitives)
 			if (sp instanceof Cuboid)
 				coll|=((Cuboid)sp).intersect(mShip,0,0,true);
+			else if (sp instanceof ZSprite)
+				coll|=mShip.intersect((ZSprite)sp,0,0,true);
 		if (coll) {
 			updateLife();
 			if (mCurrentLife<=0) return; //game end

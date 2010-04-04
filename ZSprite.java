@@ -125,6 +125,44 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		this.z=z;
 	}
 
+	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersectionInThis){
+		//calculate intersection rect in local coords
+		int ox = sprite.x - x + dx;
+		int il = Math.max(0, ox);
+		int ir = Math.min(w, ox + sprite.w);
+		if (il >= ir)
+			return false;
+		int oy = sprite.y - y + dy;
+		int it = Math.max(0, oy);
+		int ib = Math.min(h, sprite.h + oy);
+		if (it >= ib)
+			return false;
+
+		//sprite equal to bounding rect
+		if (!transparent && !sprite.transparent)
+			return true;
+
+		//pixel check
+		removeIntersectionInThis = removeIntersectionInThis && transparent;
+
+		boolean result=false;
+
+		int oz=sprite.z - z;
+		int zeps = 2;
+		for (int y=it;y<ib;y++){
+			int b = getLineIndex(y);
+			int b2 = sprite.getLineIndex(y - oy);
+			for (int x=il;x<ir;x++)
+				if (dataVisible[b+x] && sprite.dataVisible[b2+x-ox]&&
+				    Math.abs(data[b+x]    - sprite.data[b2+x-ox]  - oz) <= zeps){
+					result=true;
+					if (removeIntersectionInThis) dataVisible[b+x]=false;
+					else return result;
+				}
+		}
+		return result;
+	}
+
 	public Object jsonSerialize(){
 		TreeMap<String,Object> tm = new TreeMap<String,Object>();
 		tm.put("type", "ZSprite");

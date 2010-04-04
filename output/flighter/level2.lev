@@ -1,0 +1,78 @@
+[
+
+{"image":"mine_rot.png","position":[750,10,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[750,10,0],[750,10,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,110,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[750,110,0],[750,110,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,210,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[750,210,0],[750,210,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,310,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[750,310,0],[750,310,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,410,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[750,410,0],[750,410,12]] ,"velocity":1}],"type":"ZSprite"}
+
+{"image":"mine_rot.png","position":[750,510,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[750,510,0],[750,510,12]] ,"velocity":1}],"type":"ZSprite"},
+
+
+
+
+
+
+
+
+
+
+
+
+{"image":"mine_rot.png","position":[850,-40,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[850,-40,12],[850,-40,0]] ,"velocity":1}],"type":"ZSprite"},
+
+
+{"image":"mine_rot.png","position":[850,60,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[850,60,12],[850,60,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[850,160,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[850,160,12],[850,160,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[850,260,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[850,260,12],[850,260,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[850,360,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[850,360,12],[850,360,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[850,460,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[850,460,12],[850,460,0]] ,"velocity":1}],"type":"ZSprite"}
+
+{"image":"mine_rot.png","position":[850,560,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[850,560,12],[850,560,0]] ,"velocity":1}],"type":"ZSprite"},
+
+
+
+
+
+{"image":"mine_rot.png","position":[750,10,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[950,10,0],[950,10,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,110,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[950,110,0],[950,110,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,210,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[950,210,0],[950,210,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,310,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[950,310,0],[950,310,12]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[750,410,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[950,410,0],[950,410,12]] ,"velocity":1}],"type":"ZSprite"}
+
+{"image":"mine_rot.png","position":[750,510,5],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[950,510,0],[950,510,12]] ,"velocity":1}],"type":"ZSprite"},
+
+
+
+
+{"image":"mine_rot.png","position":[1050,-40,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[1050,-40,12],[1050,-40,0]] ,"velocity":1}],"type":"ZSprite"},
+
+
+{"image":"mine_rot.png","position":[1050,60,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0}, {"type":"PrimitiveMover", "method":"linear","positions":[[1050,60,12],[1050,60,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[1050,160,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[1050,160,12],[1050,160,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[1050,260,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[1050,260,12],[1050,260,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[1050,360,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[1050,360,12],[1050,360,0]] ,"velocity":1}],"type":"ZSprite"},
+
+{"image":"mine_rot.png","position":[1050,460,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[1050,460,12],[1050,460,0]] ,"velocity":1}],"type":"ZSprite"}
+
+{"image":"mine_rot.png","position":[1050,560,10],"modifier":[{"roipos":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],"roisize":[80,80],"type":"PrimitiveAnimator","velocity":6.0},{"type":"PrimitiveMover", "method":"linear","positions":[[1050,560,12],[1050,560,0]] ,"velocity":1}],"type":"ZSprite"},
+
+
+
+{"corners":[2880,130,0,2990,350,15],"type":"Cuboid"}
+]

@@ -7,6 +7,9 @@ import javax.swing.JOptionPane;
 
 public class SIRDSFlighterEditor extends SIRDSFlighter{
 	protected int mCurrentSelection=-1;
+	private boolean mDragging;
+	private int mSelectionStartrx, mSelectionStartry;
+	private Vector3i mSelectionStartCenter;
 	@Override
 	public void start(Object manager){
 		super.start(manager);
@@ -78,8 +81,16 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		//create
 		if (mManager.isKeyPressed(KeyEvent.VK_C))
 			addCuboidAtCursor();
-		//delete
+		//create image
+		if (mManager.isKeyPressed(KeyEvent.VK_I))
+			addZSpriteAtCursor();
+		//duplicate
 		if (mManager.isKeyPressed(KeyEvent.VK_D))
+			duplicateScenePrimitive();
+
+
+		//remove
+		if (mManager.isKeyPressed(KeyEvent.VK_R))
 			removeSelectedCuboid();
 
 		//resize
@@ -88,6 +99,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		    mManager.isKeyPressed(KeyEvent.VK_Z))
 			resizeSelectedCuboid(mManager.isKeyPressed(KeyEvent.VK_X), mManager.isKeyPressed(KeyEvent.VK_Y), mManager.isKeyPressed(KeyEvent.VK_Z), shift, ctrl);
 
+		//extended modifiers
 		if (mManager.isKeyPressed(KeyEvent.VK_M) && mManager.isKeyPressedChanged(KeyEvent.VK_M)){
 			ArrayList<PrimitiveModifier> apm = mLevelModifier.get(mCurrentSelection);
 			String s = (String)JOptionPane.showInputDialog(null,"Modifiers:","",JOptionPane.PLAIN_MESSAGE,null,null,apm!=null?(new JSONWriter()).write(apm):"");
@@ -133,18 +145,38 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		//-----------------mouse events-----------------------
 		int rx=mManager.getMouseX()+mScene.cameraX;
 		int ry=mManager.getMouseY()+mScene.cameraY;
-		if (mManager.isMousePressed(MouseEvent.BUTTON1)){
+		if (mManager.isMousePressed(MouseEvent.BUTTON1) &&
+		    mManager.isMousePressedChanged(MouseEvent.BUTTON1)){
 			int j=-1;
+			int bestZ=-1;
 			for (int i=0;i<mLevelPrimitives.size();i++){
 				ScenePrimitive sp = mLevelPrimitives.get(i);
 				if (sp instanceof Cuboid) {
 					Cuboid c = (Cuboid)sp;
-					if (c.containsPoint(rx, ry) && (j==-1 || c.maxz>c.maxz)){
+					if (c.containsPoint(rx, ry) && (j==-1 || c.maxz>bestZ)){
 						j=i;
+						bestZ=c.maxz;
+					}
+				} else if (sp instanceof ZSprite){
+					ZSprite zsp = (ZSprite)sp;
+					if (zsp.inBounds(rx-zsp.x, ry-zsp.y) &&
+					    zsp.dataVisible[zsp.getIndex(rx-zsp.x, ry-zsp.y)]){
+						j=i;
+						bestZ=zsp.data[zsp.getIndex(rx-zsp.x, ry-zsp.y)];
 					}
 				}
 			}
 			setCurrentSelection(j);
+			if (j!=-1){
+				mSelectionStartrx=rx;
+				mSelectionStartry=ry;
+				mSelectionStartCenter=mLevelPrimitives.get(mCurrentSelection).centerI();
+			}
+		}
+		if (mManager.isMousePressed(MouseEvent.BUTTON1) && mCurrentSelection != -1) {
+			mDragging = (rx-mSelectionStartrx)*(rx-mSelectionStartrx)+
+				    (ry-mSelectionStartry)*(ry-mSelectionStartry) >= 25;
+			moveSelectedObject(rx,ry);
 		}
 
 		int z=-1;
@@ -170,7 +202,11 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		mCurrentSelection=currentSelection;
 		mScene.setFloaterText("cursel","cursel: "+mCurrentSelection, 0xffddddcc);
 	}
-	
+
+	protected void moveSelectedObject(int nx, int ny){
+		ScenePrimitive sp=mLevelPrimitives.get(mCurrentSelection);
+		sp.moveTo(mSelectionStartCenter.x+nx-mSelectionStartrx,mSelectionStartCenter.y+ny-mSelectionStartry,mSelectionStartCenter.z);
+	}
 	public void removeSelectedCuboid(){
 		if (mCurrentSelection==-1) return;
 		mManager.suspendRendering();
@@ -190,12 +226,44 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		int maxy=Math.min(mZBufferH,f.y-mZBufferYStart+100);if (maxy % cuboidDelta!=0) maxy-=maxy%cuboidDelta;
 		int minz=Math.max(0,f.z-5);
 		int maxz=Math.min(ZDraw.MAXZ,f.z+5);
-		mLevelPrimitives.add(new Cuboid(minx,maxx,miny,maxy,minz,maxz));
+		Cuboid c=new Cuboid(minx,maxx,miny,maxy,minz,maxz);
+		mLevelPrimitives.add(c);
 		mLevelModifier.add(new ArrayList<PrimitiveModifier>());
+		mScene.addPrimitive(c);
 		setCurrentSelection(mLevelPrimitives.size()-1);
 		mManager.resumeRendering();
 	}
-	
+	public void addZSpriteAtCursor(){
+		Floater f=mManager.getFloaterCursor();
+		mManager.suspendRendering();
+		String imageName = (String)JOptionPane.showInputDialog(null,"Imagename:","",JOptionPane.PLAIN_MESSAGE,null,null,"");
+		if (imageName==null )return;
+		ZSprite base;
+		if (mImageCache.containsKey(imageName)) base=mImageCache.get(imageName);
+		else {
+			base = mScene.createZSprite("flighter/"+imageName);
+			mImageCache.put(imageName,base);
+		}
+		ZSprite nsp = base.fastClone();
+		nsp.x=f.x+mScene.cameraX;nsp.y=f.y+mScene.cameraY;nsp.z=f.z;
+		mLevelPrimitives.add(nsp);
+		mLevelModifier.add(new ArrayList<PrimitiveModifier>());
+		mScene.addPrimitive(nsp);
+		setCurrentSelection(mLevelPrimitives.size()-1);
+		mManager.resumeRendering();
+
+	}
+	public void duplicateScenePrimitive(){
+		if (mCurrentSelection==-1)return;
+		if (mLevelPrimitives.get(mCurrentSelection) instanceof Cuboid){
+			Cuboid c=(Cuboid)mLevelPrimitives.get(mCurrentSelection);
+			Cuboid n = c.fastClone();
+			mLevelPrimitives.add(n);
+			mLevelModifier.add(mLevelModifier.get(mCurrentSelection).clone());
+			mScene.addPrimitive(n);
+		}
+
+	}
 	public void resizeSelectedCuboid(boolean resizeX, boolean resizeY, boolean resizeZ, boolean enlarge, boolean minimum){
 		if (mCurrentSelection==-1) return;
 		ScenePrimitive sp = mLevelPrimitives.get(mCurrentSelection);

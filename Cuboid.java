@@ -25,6 +25,19 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 	public Cuboid(int nminx, int nmaxx, int nminy, int nmaxy, int nminz, int nmaxz){
 		setSize(nminx,  nmaxx, nminy, nmaxy, nminz, nmaxz);
 	}
+	public Cuboid(Cuboid other){
+		minx=other.minx;
+		maxx=other.maxx;
+		miny=other.miny;
+		maxy=other.maxy;
+		minz=other.minz;
+		maxz=other.maxz;
+	}
+
+	public Cuboid fastClone(){
+		return new Cuboid(this);
+	}
+
 	public void drawTo(ZDraw map, int dx, int dy){
 		int nminx=minx+dx;
 		int nmaxx=maxx+dx;
