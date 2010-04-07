@@ -595,4 +595,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		if (mb<0 || mb>mouseState.length) return false;
 		return mouseStateJustChanged[mb]>=1;
 	}
+	public boolean isKeyPressedOnce(int vk){
+		return isKeyPressed(vk) && isKeyPressedChanged(vk);
+	}
 }

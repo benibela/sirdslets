@@ -68,8 +68,8 @@ public class SIRDSApplets extends SIRDSAppletManager
 		});
 
 		SIRDSApplets sa=new SIRDSApplets();
-		sa.setSize(600,600);
-		w.setSize(600,600);
+		sa.setSize(620,640);
+		w.setSize(620,640);
 		w.add(sa);
 		MockAppletStub stub=new MockAppletStub(sa.getClass().getClassLoader().getResource("SIRDSApplets.class").toString());
 		sa.setStub(stub);

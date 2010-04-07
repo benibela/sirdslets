@@ -7,10 +7,25 @@ public class PrimitiveAnimator implements PrimitiveModifier, JSONSerializable{
 
 	PrimitiveAnimator(){}
 	PrimitiveAnimator(ScenePrimitive sp){
+		setPrimitive(sp);
+	}
+
+	public void setPrimitive(ScenePrimitive sp){
 		if (!(sp instanceof ZSprite))
 			throw new IllegalArgumentException("no zsprite");
 		prim=(ZSprite)sp;
 	}
+
+	public PrimitiveModifier clone(ScenePrimitive sp){
+		PrimitiveAnimator pa = new PrimitiveAnimator(sp);
+		pa.velocity = velocity;
+		for (Integer i: roiPos)
+			pa.roiPos.add(i.intValue());
+		for (Integer i: roiSize)
+			pa.roiSize.add(i.intValue());
+		return pa;
+	}
+
 	public float velocity;
 	public ArrayList<Integer> roiPos=new ArrayList<Integer>();
 	public ArrayList<Integer> roiSize=new ArrayList<Integer>();

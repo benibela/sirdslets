@@ -9,6 +9,17 @@ public class PrimitiveMover implements PrimitiveModifier, JSONSerializable {
 	PrimitiveMover(ScenePrimitive sp){
 		prim=sp;
 	}
+	public void setPrimitive(ScenePrimitive sp){
+		prim=(ZSprite)sp;
+	}
+	public PrimitiveModifier clone(ScenePrimitive sp){
+		PrimitiveMover pm = new PrimitiveMover(sp);
+		pm.velocity = velocity;
+		pm.method = method;
+		for (Vector3i v: positions)
+			pm.positions.add(v.clone());
+		return pm;
+	}
 
 	public enum MoveMethod {MM_LINEAR, MM_BSPLINE};
 	public ArrayList<Vector3i> positions=new ArrayList<Vector3i>();

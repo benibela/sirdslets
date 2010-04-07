@@ -79,25 +79,26 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 				mManager.setFloaterCursorZ(mManager.getFloaterCursorZ()-1);
 
 		//create
-		if (mManager.isKeyPressed(KeyEvent.VK_C))
+		if (mManager.isKeyPressedOnce(KeyEvent.VK_C))
 			addCuboidAtCursor();
 		//create image
-		if (mManager.isKeyPressed(KeyEvent.VK_I))
+		if (mManager.isKeyPressedOnce(KeyEvent.VK_I))
 			addZSpriteAtCursor();
 		//duplicate
-		if (mManager.isKeyPressed(KeyEvent.VK_D))
+		if (mManager.isKeyPressedOnce(KeyEvent.VK_D))
 			duplicateScenePrimitive();
 
 
 		//remove
-		if (mManager.isKeyPressed(KeyEvent.VK_R))
+		if (mManager.isKeyPressedOnce(KeyEvent.VK_R))
 			removeSelectedCuboid();
 
 		//resize
 		if (mManager.isKeyPressed(KeyEvent.VK_X) ||
-		    mManager.isKeyPressed(KeyEvent.VK_Y) ||
-		    mManager.isKeyPressed(KeyEvent.VK_Z))
+		    mManager.isKeyPressed(KeyEvent.VK_Y))
 			resizeSelectedCuboid(mManager.isKeyPressed(KeyEvent.VK_X), mManager.isKeyPressed(KeyEvent.VK_Y), mManager.isKeyPressed(KeyEvent.VK_Z), shift, ctrl);
+		if (mManager.isKeyPressedOnce(KeyEvent.VK_Z))
+			resizeSelectedCuboid(false, false, mManager.isKeyPressed(KeyEvent.VK_Z), shift, ctrl);
 
 		//extended modifiers
 		if (mManager.isKeyPressed(KeyEvent.VK_M) && mManager.isKeyPressedChanged(KeyEvent.VK_M)){
@@ -112,9 +113,11 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 					}
 				} else {
 					if (apm==null) apm=new ArrayList<PrimitiveModifier>();
-					else for (PrimitiveModifier mod: apm)
-						mScene.removePrimitiveModifier(mod);
-
+					else {
+						for (PrimitiveModifier mod: apm)
+							mScene.removePrimitiveModifier(mod);
+						apm.clear();
+					}
 					ArrayList<Map<String, Object>> temp=(ArrayList<Map<String, Object>>)((new JSONReader()).read(s));
 					for (Map<String, Object> map: temp){
 						String type=(String)map.get("type");
@@ -122,6 +125,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 						if (type.equals("PrimitiveMover")) pm=new PrimitiveMover(mLevelPrimitives.get(mCurrentSelection));
 						else if (type.equals("PrimitiveAnimator")) pm=new PrimitiveAnimator(mLevelPrimitives.get(mCurrentSelection));
 						pm.jsonDeserialize(map);
+						mScene.addPrimitiveModifier(pm);
 						apm.add(pm);
 					}
 
@@ -190,12 +194,24 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		}
 		//int z=mZBuffer.data[mZBuffer.getLineIndex(y)+x];
 		mScene.setFloaterText("mousez:",rx+"/"+ry+"/"+z,0xffddddcc).y=mZBufferYStart+500;
+		if (mCurrentSelection>=0 && mCurrentSelection<mLevelPrimitives.size() ) {
+			ScenePrimitive curSel = mLevelPrimitives.get(mCurrentSelection);
+			if (curSel instanceof Cuboid) {
+				Cuboid c = (Cuboid)curSel;
+				mScene.setFloaterText("cursel1",c.minx+":"+c.miny+":"+c.minz,0xffddddcc).y=mZBufferYStart+515;
+				mScene.setFloaterText("cursel2",c.maxx+":"+c.maxy+":"+c.maxz,0xffddddcc).y=mZBufferYStart+530;
+			} else if (curSel instanceof ZSprite){
+				ZSprite zs = (ZSprite)curSel;
+				mScene.setFloaterText("cursel1",zs.x+":"+zs.y+":"+zs.z,0xffddddcc).y=mZBufferYStart+515;
+				mScene.setFloaterText("cursel2","..",0xffddddcc).y=mZBufferYStart+530;
+			}
+		}
 	}
 	
 
 	protected void scrollLevelDelta(int delta){
 		mLevelScroll+=delta;
-		mScene.cameraX=-mLevelScroll;
+		mScene.setCameraPosition(-mLevelScroll,-(mScene.height-mZBufferH)/2,0)	;
 	}
 	
 	protected void setCurrentSelection(int currentSelection){
@@ -210,6 +226,9 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	public void removeSelectedCuboid(){
 		if (mCurrentSelection==-1) return;
 		mManager.suspendRendering();
+		mScene.removePrimitive(mLevelPrimitives.get(mCurrentSelection));
+		for (PrimitiveModifier pm: mLevelModifier.get(mCurrentSelection))
+			mScene.removePrimitiveModifier(pm);
 		mLevelPrimitives.remove(mCurrentSelection);
 		mLevelModifier.remove(mCurrentSelection);
 		mManager.resumeRendering();
@@ -255,13 +274,22 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	}
 	public void duplicateScenePrimitive(){
 		if (mCurrentSelection==-1)return;
-		if (mLevelPrimitives.get(mCurrentSelection) instanceof Cuboid){
-			Cuboid c=(Cuboid)mLevelPrimitives.get(mCurrentSelection);
-			Cuboid n = c.fastClone();
-			mLevelPrimitives.add(n);
-			mLevelModifier.add(mLevelModifier.get(mCurrentSelection).clone());
-			mScene.addPrimitive(n);
+		ScenePrimitive c=mLevelPrimitives.get(mCurrentSelection);
+		ScenePrimitive n = c.fastClone();
+		mLevelPrimitives.add(n);
+		if (mLevelModifier.get(mCurrentSelection)==null)
+			mLevelModifier.add(null);
+		else{
+			ArrayList<PrimitiveModifier> list=new ArrayList<PrimitiveModifier>();
+			for (PrimitiveModifier pm: (ArrayList<PrimitiveModifier>) mLevelModifier.get(mCurrentSelection)){
+				PrimitiveModifier pm2=pm.clone(n);
+				list.add(pm2);
+				mScene.addPrimitiveModifier(pm2);
+			}
+			mLevelModifier.add(list);
 		}
+		mScene.addPrimitive(n);
+		mCurrentSelection = mLevelPrimitives.size()-1;
 
 	}
 	public void resizeSelectedCuboid(boolean resizeX, boolean resizeY, boolean resizeZ, boolean enlarge, boolean minimum){
@@ -270,19 +298,21 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		if (!(sp instanceof Cuboid)) return;
 		Cuboid c = (Cuboid)sp;
 		int inc=enlarge?1:-1;
+
+		//3d
+		if (resizeZ){
+			if (minimum) c.minz=Math.min(c.maxz,Math.max(0,c.minz+inc));
+			else c.maxz=Math.max(c.minz,Math.min(ZDraw.MAXZ,c.maxz+inc));
+		}
 		//1-2d
+		inc*=cuboidDelta;
 		if (resizeX)
 			if (minimum) c.minx+=inc;
 			else c.maxx+=inc;
 		if (resizeY)
 			if (minimum) c.miny=Math.min(c.maxy,Math.max(0,c.miny+inc));
 			else c.maxy=Math.max(c.miny,Math.min(mZBufferH,c.maxy+inc));
-		//3d
-		if (resizeZ){
-			inc*=cuboidDelta;
-			if (minimum) c.minz=Math.min(c.maxz,Math.max(0,c.minz+inc));
-			else c.maxz=Math.max(c.minz,Math.min(ZDraw.MAXZ,c.maxz+inc));
-		}
+
 	}
 		
 	public String getSIRDletName(){

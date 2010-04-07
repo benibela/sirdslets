@@ -36,6 +36,9 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		res.stride=stride;
 		res.transparent = transparent;
 		res.dataVisible = dataVisible;
+		res.x=x;
+		res.y=y;
+		res.z=z;
 		return res;
 	}
 
