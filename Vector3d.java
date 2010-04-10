@@ -47,6 +47,18 @@ class Vector3d implements JSONSerializable{
 		z+=f;
 		return this;
 	}
+	public Vector3d sub(final Vector3d v){
+		x-=v.x;
+		y-=v.y;
+		z-=v.z;
+		return this;
+	}
+	public Vector3d sub(final Vector3i v){
+		x-=v.x;
+		y-=v.y;
+		z-=v.z;
+		return this;
+	}
 	public Vector3d multiply(final double f){
 		x*=f;
 		y*=f;

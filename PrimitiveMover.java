@@ -5,9 +5,12 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class PrimitiveMover implements PrimitiveModifier, JSONSerializable {
-	PrimitiveMover(){}
+	PrimitiveMover(){
+		method = MoveMethod.MM_LINEAR;
+	}
 	PrimitiveMover(ScenePrimitive sp){
 		prim=sp;
+		method = MoveMethod.MM_LINEAR;
 	}
 	public void setPrimitive(ScenePrimitive sp){
 		prim=(ZSprite)sp;

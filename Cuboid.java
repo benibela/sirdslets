@@ -148,7 +148,10 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 		move(x-center.x,y-center.y,z-center.z);
 	}
 
-
+	public int zAt(int wx, int wy){
+		if (!containsPoint(wx, wy)) return -1;
+		return maxz;
+	}
 
 	public Object jsonSerialize(){
 		TreeMap<String,Object> tm = new TreeMap<String,Object>();

@@ -256,4 +256,17 @@ public class SceneManager {
 		mModifiers.remove(pm);
 	}
 
+
+
+
+	PrimitiveModifier deserializePrimitiveModifier(Map<String, Object> map, ScenePrimitive parent){
+		PrimitiveModifier pm=null;
+		String type=(String)map.get("type");
+		if (type.equals("PrimitiveMover")) pm=new PrimitiveMover(parent);
+		else if (type.equals("PrimitiveAnimator")) pm=new PrimitiveAnimator(parent);
+		else if (type.equals("PrimitiveMarker")) pm=new PrimitiveMarker(parent);
+		else throw new IllegalArgumentException("invalid type: "+type)
+		pm.jsonDeserialize(map);
+		return pm;
+	}
 }

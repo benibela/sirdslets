@@ -29,11 +29,13 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected long mCurTime,mLastShoot = 0;
 	protected int mShootTimeout, mShootCount;
 	//World
+	protected int firstLevel = 3;
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
 	protected ArrayList<ArrayList<PrimitiveModifier>> mLevelModifier;
 	protected HashMap<String, ZSprite> mImageCache = new HashMap<String, ZSprite>();
+	private ArrayList<PrimitiveModifier> mSpecialModifier;
 
 	public void start(Object manager){
 		mManager=(SIRDSAppletManager)manager;
@@ -43,7 +45,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		mShootTimeout = 450;
 		mShootCount = 0;
-		startLevel(2);
+		startLevel(firstLevel);
 	}
 	protected void startLevel(int level){
 		mScene.clear();
@@ -81,6 +83,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			br.close();
 			mLevelPrimitives=new ArrayList<ScenePrimitive>();
 			mLevelModifier=new ArrayList<ArrayList<PrimitiveModifier>>();
+			mSpecialModifier=new ArrayList<PrimitiveModifier>();
 			for (Object o: levelJSON)
 				if (o instanceof Map) {
 					Map<String, Object> m = (Map<String, Object>)o;
@@ -103,11 +106,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 						for (Object p: pmser){
 							Map<String, Object> n = (Map<String, Object>)p;
 							String ntype = (String)n.get("type");
-							PrimitiveModifier mod;
-							if (ntype.equals("PrimitiveMover")) mod=new PrimitiveMover(sp);
-							else if (ntype.equals("PrimitiveAnimator")) mod=new PrimitiveAnimator(sp);
-							else throw new IllegalArgumentException("invalid modifier object");
-							mod.jsonDeserialize(n);
+							PrimitiveModifier mod = mScene.deserializePrimitiveModifier(n, sp) ;
+							if (mod instanceof PrimitiveMarker) mSpecialModifier.add(mod);
 							mScene.addPrimitiveModifier(mod);
 							apm.add(mod);
 						}
@@ -179,7 +179,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		}
 
 		//---------------------keyinput------------------------
-		final double acceleration=1;
+		final double acceleration=2;
 		Vector3d mShipA=new Vector3d();
 		mShipA.x-=mManager.isKeyPressed(KEY_SHIP_ACC_LEFT)?acceleration:0;
 		mShipA.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
@@ -191,13 +191,28 @@ public class SIRDSFlighter implements SIRDSlet	{
 		if (mManager.isKeyPressed(KEY_SHIP_FIRE) || mManager.isKeyPressedChanged(KEY_SHIP_FIRE))
 			shipFire();
 
+		for (PrimitiveModifier pm: mSpecialModifier){
+			PrimitiveMarker m=((PrimitiveMarker)pm);
+			if ("gravitron".equals(m.properties.get("subtype"))){
+				Vector3d dir = mShipP.clone().sub(m.prim.centerI());
+				dir.z = 0; 
+				double distance = dir.length();
+				if (distance*distance > mScene.width*mScene.width + mScene.height*mScene.height)
+					continue; //ignore invisible things
+				double expfac = ((Number)m.properties.get("expfactor") ).doubleValue();
+				double mulfac = ((Number)m.properties.get("mulfactor") ).doubleValue();
+
+				mShipA.sub(dir.multiply(mulfac * Math.pow(distance, - expfac - 1))); //-1 to normalize dir
+			}
+		}
+
 		//-----------------move user ship----------------------
 		mShipV.add(mShipA);
-		if (mShipV.x>50) mShipV.x=50;
-		if (mShipV.y>30) mShipV.y=30;
+		if (mShipV.x>100) mShipV.x=100;
+		if (mShipV.y>60) mShipV.y=60;
 		if (mShipV.z>1.5) mShipV.z=1.5;
-		if (mShipV.x<-30) mShipV.x=-30;
-		if (mShipV.y<-30) mShipV.y=-30;
+		if (mShipV.x<-60) mShipV.x=-60;
+		if (mShipV.y<-60) mShipV.y=-60;
 		if (mShipV.z<-1) mShipV.z=-1;
 		mShipV.add(mShipV.clone().abs().add(1).multiply(mShipV).multiply(-0.01));//slowing down
 		if (mShipA.x==0) mShipV.x-=0.1*mShipV.x; //fast slowdown

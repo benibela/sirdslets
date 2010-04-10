@@ -128,6 +128,12 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		this.z=z;
 	}
 
+	public int zAt(int wx, int wy){
+		if (!inBounds(wx-x, wy-y)) return -1;
+		if (transparent && !dataVisible[getIndex(wx-x, wy-y)]) return -1;
+		return data[getIndex(wx-x, wy-y)];
+	}
+
 	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersectionInThis){
 		//calculate intersection rect in local coords
 		int ox = sprite.x - x + dx;
