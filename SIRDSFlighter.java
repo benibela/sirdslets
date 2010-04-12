@@ -26,7 +26,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
 	private int mInitialLife, mCurrentLife;
 	protected ArrayList<Cuboid> mShoots;
-	protected long mCurTime,mLastShoot = 0;
+	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
 	//World
 	protected int firstLevel = 3;
@@ -175,6 +175,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		if (mCurrentLife<=0){
 			//DEAD
+			if (mManager.isKeyPressedOnce(KEY_SHIP_FIRE)
+			    && mCurTime - mLastDied >= 2000)
+				startLevel(mLevel);
 			return;
 		}
 
@@ -353,6 +356,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 		//mLevelEnd.rotate90R();
 			mes.x=(mScene.width-mes.w)/2;
 			mes.y=(mScene.height-mes.h)/2;
+
+			mLastDied = mCurTime;
 		}
 	}
 
