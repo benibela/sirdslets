@@ -29,7 +29,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
 	//World
-	protected int firstLevel = 3;
+	protected int firstLevel = 5;
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
@@ -47,6 +47,36 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShootCount = 0;
 		startLevel(firstLevel);
 	}
+	protected ScenePrimitive addSerializedObject(Map<String, Object> m){
+		String type=(String)m.get("type");
+		ScenePrimitive sp=null;
+		if ("Cuboid".equals(type)) sp=new Cuboid();
+		else if ("ZSprite".equals(type)) {
+			String imageName=(String)m.get("image");
+			if (!mImageCache.containsKey(imageName))
+				mImageCache.put(imageName, mScene.createZSprite("flighter/"+imageName));
+			sp=((ZSprite)mImageCache.get(imageName)).fastClone();
+		} else throw new IllegalArgumentException("invalid level object");
+		sp.jsonDeserialize(m);
+		mLevelPrimitives.add(sp);
+		mScene.addPrimitive(sp);
+		ArrayList<PrimitiveModifier> apm=null;
+		if (m.containsKey("modifier")) {
+			apm=new ArrayList<PrimitiveModifier>();
+			ArrayList<Object> pmser=(ArrayList<Object>)m.get("modifier");
+			for (Object p: pmser){
+				Map<String, Object> n = (Map<String, Object>)p;
+				String ntype = (String)n.get("type");
+				PrimitiveModifier mod = mScene.deserializePrimitiveModifier(n, sp) ;
+				if (mod instanceof PrimitiveMarker) mSpecialModifier.add(mod);
+				mScene.addPrimitiveModifier(mod);
+				apm.add(mod);
+			}
+		}
+		mLevelModifier.add(apm);
+		return sp;
+	}
+
 	protected void startLevel(int level){
 		mScene.clear();
 		mManager.suspendRendering();
@@ -63,11 +93,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 		updateLife();
 		
 		mShip.x=300-mShip.w/2;
-		mShip.y=250-mShip.h/2;
+		mShip.y=mZBufferH/2-mShip.h/2;
 		mShip.z=10;
 
 		mShipV=new Vector3d();
-		mShipP=new Vector3d(mShip.x,mShip.y-mZBufferYStart,mShip.z);
+		mShipP=new Vector3d(mShip.x+mShip.w/2,mShip.y+mShip.h/2,mShip.z);
 		
 		
 		try{
@@ -86,33 +116,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			mSpecialModifier=new ArrayList<PrimitiveModifier>();
 			for (Object o: levelJSON)
 				if (o instanceof Map) {
-					Map<String, Object> m = (Map<String, Object>)o;
-					String type=(String)m.get("type");
-					ScenePrimitive sp=null;
-					if ("Cuboid".equals(type)) sp=new Cuboid();
-					else if ("ZSprite".equals(type)) {
-						String imageName=(String)m.get("image");
-						if (!mImageCache.containsKey(imageName))
-							mImageCache.put(imageName, mScene.createZSprite("flighter/"+imageName));
-						sp=((ZSprite)mImageCache.get(imageName)).fastClone();
-					} else throw new IllegalArgumentException("invalid level object");
-					sp.jsonDeserialize(m);
-					mLevelPrimitives.add(sp);
-					mScene.addPrimitive(sp);
-					ArrayList<PrimitiveModifier> apm=null;
-					if (m.containsKey("modifier")) {
-						apm=new ArrayList<PrimitiveModifier>();
-						ArrayList<Object> pmser=(ArrayList<Object>)m.get("modifier");
-						for (Object p: pmser){
-							Map<String, Object> n = (Map<String, Object>)p;
-							String ntype = (String)n.get("type");
-							PrimitiveModifier mod = mScene.deserializePrimitiveModifier(n, sp) ;
-							if (mod instanceof PrimitiveMarker) mSpecialModifier.add(mod);
-							mScene.addPrimitiveModifier(mod);
-							apm.add(mod);
-						}
-					}
-					mLevelModifier.add(apm);
+					addSerializedObject((Map<String, Object>)o);
 				}
 			/*
 			ObjectInputStream levelStream = new ObjectInputStream(new BufferedInputStream(mScene.getFileURL("flighter/level"+level+".ser").openStream()));
@@ -188,8 +192,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShipA.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
 		mShipA.y-=mManager.isKeyPressed(KEY_SHIP_ACC_UP)?acceleration:0;
 		mShipA.y+=mManager.isKeyPressed(KEY_SHIP_ACC_DOWN)?acceleration:0;
-		mShipA.z-=mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)?0.05:0;
-		mShipA.z+=mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)?0.05:0;
+		mShipA.z-=mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)?0.25:0;
+		mShipA.z+=mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)?0.25:0;
 
 		if (mManager.isKeyPressed(KEY_SHIP_FIRE) || mManager.isKeyPressedChanged(KEY_SHIP_FIRE))
 			shipFire();
@@ -200,8 +204,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 				Vector3d dir = mShipP.clone().sub(m.prim.centerI());
 				dir.z = 0; 
 				double distance = dir.length();
-				if (distance*distance > mScene.width*mScene.width + mScene.height*mScene.height)
-					continue; //ignore invisible things
+				if (distance*distance > 500*500 + 500*500)
+					continue; //ignore things too far away
 				double expfac = ((Number)m.properties.get("expfactor") ).doubleValue();
 				double mulfac = ((Number)m.properties.get("mulfactor") ).doubleValue();
 
@@ -211,16 +215,19 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		//-----------------move user ship----------------------
 		mShipV.add(mShipA);
-		if (mShipV.x>100) mShipV.x=100;
+		/*if (mShipV.x>100) mShipV.x=100;
 		if (mShipV.y>60) mShipV.y=60;
 		if (mShipV.z>1.5) mShipV.z=1.5;
 		if (mShipV.x<-60) mShipV.x=-60;
 		if (mShipV.y<-60) mShipV.y=-60;
-		if (mShipV.z<-1) mShipV.z=-1;
-		mShipV.add(mShipV.clone().abs().add(1).multiply(mShipV).multiply(-0.01));//slowing down
+		if (mShipV.z<-1) mShipV.z=-1;*/
+		/*mShipV.add(mShipV.clone().abs().add(1).multiply(mShipV).multiply(-0.01));//slowing down
 		if (mShipA.x==0) mShipV.x-=0.1*mShipV.x; //fast slowdown
 		if (mShipA.y==0) mShipV.y-=0.1*mShipV.y; //fast slowdown
-		if (mShipA.z==0) mShipV.z-=0.1*mShipV.z; //fast slowdown
+		if (mShipA.z==0) mShipV.z-=0.1*mShipV.z; //fast slowdown*/
+		mShipV.multiply(0.9);
+		mShipV.z = mShipV.z * 0.9;
+
 		//mShipP.x+=1;
 		mShipP.add(mShipV);
 		/*if (mShipP.x+mShip.w>mScene.width) {
@@ -228,8 +235,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 			mShipV.x=-0.01;
 		}
 		 * */
-		if (mShipP.y+mShip.h>mZBufferH) {
-			mShipP.y=mZBufferH-mShip.h;
+		if (mShipP.y+mShip.h/2>mZBufferH) {
+			mShipP.y=mZBufferH-mShip.h/2;
 			if (mShipV.y>-0.01) mShipV.y=-0.01;
 		}
 		if (mShipP.z>MAXFLYZ) {	
@@ -240,8 +247,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 			mShipP.x=-mLevelScroll+ZDraw.MAXZ+30;
 			if (mShipV.x<0.01) mShipV.x=0.01;
 		}
-		if (mShipP.y<0) {
-			mShipP.y=0;
+		if (mShipP.x> -mLevelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
+			mLevelScroll = (int)(mScene.width - mShipP.x - mShip.w/2);
+		}
+		if (mShipP.y<mShip.h/2) {
+			mShipP.y=mShip.h/2;
 			if (mShipV.y<0.01) mShipV.y=0.01;
 		}
 		if (mShipP.z<2) {
@@ -249,8 +259,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 			if (mShipV.z<0.01) mShipV.z=0.01;
 		}		
 
-		mShip.x=(int)Math.round(mShipP.x);
-		mShip.y=(int)Math.round(mShipP.y);
+		mShip.x=(int)Math.round(mShipP.x-mShip.w/2);
+		mShip.y=(int)Math.round(mShipP.y-mShip.h/2);
 		mShip.z=(int)Math.round(mShipP.z);
 //		mLevelEnd.x=mLevelLength+50+mLevelScroll;
 
@@ -272,15 +282,24 @@ public class SIRDSFlighter implements SIRDSlet	{
 						mScene.removePrimitive(c);
 						break;
 					}
-				} else if (mLevelPrimitives.get(j) instanceof ZSprite)
+				} else if (mLevelPrimitives.get(j) instanceof ZSprite){
 					if (c.intersect(((ZSprite)mLevelPrimitives.get(j)), 0, 0)){
+						boolean foundMarker = false;
+						for (PrimitiveModifier pm: mLevelModifier.get(j))
+							if (pm instanceof PrimitiveMarker)
+								foundMarker = true;
+						if (foundMarker) {
+							mShoots.remove(i);
+							mScene.removePrimitive(c);
+							break;
+						}
 						mShoots.remove(i);
 						mScene.removePrimitive(c);
 						mScene.removePrimitive(mLevelPrimitives.get(j));
 						mLevelPrimitives.remove(j);
 						break;
 					}
-			
+				}
 		}
 
 

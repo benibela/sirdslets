@@ -2,6 +2,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.TreeMap;
 import javax.swing.JOptionPane;
 
 
@@ -15,8 +16,9 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	private ArrayList<ScenePrimitive> mEditedMoverPositions;
 	private int mCurrentSelectionPosition;
 
-	private enum EditingState {ES_NORMAL, ES_MOVER};
+	private enum EditingState {ES_NORMAL, ES_MOVER, ES_TESTING};
 	private EditingState mState = EditingState.ES_NORMAL;
+	private Map<String, String> mBasicElements;
 	@Override
 	public void start(Object manager){
 		super.start(manager);
@@ -31,6 +33,10 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 
 		mEditedMoverPositions = new ArrayList<ScenePrimitive>();
 
+		mBasicElements = new TreeMap<String, String>();
+		mBasicElements.put("mine", "{\"image\":\"mine_rot.png\",\"modifier\":[{\"roipos\":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],\"roisize\":[80,80],\"type\":\"PrimitiveAnimator\",\"velocity\":6.0}],\"position\":[750,10,10],\"type\":\"ZSprite\"}");
+		mBasicElements.put("black hole", "{\"image\":\"blackhole.png\",\"modifier\":[{\"expfactor\":2,\"mulfactor\":40000,\"subtype\":\"gravitron\",\"type\":\"PrimitiveMarker\"}],\"position\":[1130,0,0],\"type\":\"ZSprite\"}");
+		mBasicElements.put("white hole", "{\"image\":\"whitehole.png\",\"modifier\":[{\"expfactor\":2,\"mulfactor\":-40000,\"subtype\":\"gravitron\",\"type\":\"PrimitiveMarker\"}],\"position\":[3870,0,0],\"type\":\"ZSprite\"}");
 		startLevel(firstLevel);
 	}
 	@Override
@@ -39,8 +45,12 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	}
 	@Override
 	public void startLevel(int level){
+		if (mState == EditingState.ES_TESTING){
+			setEditingState(EditingState.ES_NORMAL);
+			return;
+		}
 		super.startLevel(level);
-		mState = EditingState.ES_NORMAL;
+		setEditingState(EditingState.ES_NORMAL);
 		mScene.setFloaterText("level","level: "+mLevel, 0xffddddcc);
 	}
 	protected void saveLevel(){
@@ -70,13 +80,49 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		}
 	}
 
+	protected void setEditingState(EditingState newState){
+		if (newState == mState) return;
+		//go to normal
+		switch (mState){
+			case ES_MOVER:
+				mState = EditingState.ES_NORMAL;
+				for (ScenePrimitive c: mEditedMoverPositions)
+					mScene.removePrimitive(c);
+				mEditedMoverPositions.clear();
+				break;
+			case ES_TESTING:
+				mState = EditingState.ES_NORMAL;
+				startLevel(mLevel);
+				break;
+		}
+		//go to new
+		switch (newState){
+			case ES_MOVER:
+				editPrimitiveMover();
+				break;
+			case ES_TESTING:
+				saveLevel();
+				startLevel(mLevel);
+				mState = EditingState.ES_TESTING;
+				break;
+		}
+	}
+
 	@Override
 	public void calculateFrame(long timeMS){
+		boolean ctrl=mManager.isKeyPressed(KeyEvent.VK_CONTROL);
+		boolean shift=mManager.isKeyPressed(KeyEvent.VK_SHIFT);
+
+		if (mState == EditingState.ES_TESTING){
+			super.calculateFrame(timeMS);
+			if (ctrl && shift && mManager.isKeyPressedOnce(KeyEvent.VK_T))
+				setEditingState(EditingState.ES_NORMAL);
+			return;
+		}
+
 		//no level processing
 
 		//=================general processing===============
-		boolean ctrl=mManager.isKeyPressed(KeyEvent.VK_CONTROL);
-		boolean shift=mManager.isKeyPressed(KeyEvent.VK_SHIFT);
 
 		//scroll/change level
 		if (mManager.isKeyPressed(KeyEvent.VK_LEFT))
@@ -112,12 +158,18 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 					} else //mouse control
 						mManager.setFloaterCursorZ(mManager.getFloaterCursorZ()-1);
 
+				if (ctrl && shift && mManager.isKeyPressedOnce(KeyEvent.VK_T))
+					setEditingState(EditingState.ES_TESTING);
+
 				//create
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_C))
 					addCuboidAtCursor();
 				//create image
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_I))
 					addZSpriteAtCursor();
+				//create basic element
+				if (mManager.isKeyPressedOnce(KeyEvent.VK_B))
+					addBasicElementAtCursor();
 				//duplicate
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_D))
 					duplicateScenePrimitive();
@@ -140,7 +192,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 				//extended modifiers
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_M))
 					if (!ctrl) editPrimitiveModifiers();
-					else editPrimitiveMover();
+					else setEditingState(EditingState.ES_MOVER); 
 
 
 				//-----------------mouse events-----------------------
@@ -188,7 +240,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 					} else if (curSel instanceof ZSprite){
 						ZSprite zs = (ZSprite)curSel;
 						mScene.setFloaterText("cursel1",zs.x+":"+zs.y+":"+zs.z,0xffddddcc).y=mZBufferYStart+515;
-						mScene.setFloaterText("cursel2","..",0xffddddcc).y=mZBufferYStart+530;
+						mScene.setFloaterText("cursel2",(zs.x+zs.w)+":"+(zs.y+zs.h)+":",0xffddddcc).y=mZBufferYStart+530;
 					}
 				}
 				mScene.setFloaterText("mousez:",rx+"/"+ry+"/"+z,0xffddddcc).y=mZBufferYStart+500;
@@ -240,12 +292,8 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 				}
 
 
-				if (mManager.isKeyPressed(KeyEvent.VK_M) && !ctrl){
-					for (ScenePrimitive c: mEditedMoverPositions)
-						mScene.removePrimitive(c);
-					mEditedMoverPositions.clear();
-					mState = EditingState.ES_NORMAL;
-				}
+				if (mManager.isKeyPressed(KeyEvent.VK_M) && !ctrl)
+					setEditingState(EditingState.ES_NORMAL);
 
 				//create
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_C)){
@@ -343,6 +391,15 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		setCurrentSelection(mLevelPrimitives.size()-1);
 		mManager.resumeRendering();
 
+	}
+	public void addBasicElementAtCursor(){
+		String element= (String) JOptionPane.showInputDialog(null,"Element:","",JOptionPane.PLAIN_MESSAGE,null,mBasicElements.keySet().toArray(),mBasicElements.keySet().iterator().next());
+		String ser = mBasicElements.get(element);
+		if (ser==null) return;
+		ScenePrimitive sp= addSerializedObject((Map<String, Object>)((new JSONReader()).read(ser)));
+		Floater f=mManager.getFloaterCursor();
+		sp.moveTo(f.x + mScene.cameraX, f.y + mScene.cameraY, 0);
+		mCurrentSelection = mLevelPrimitives.indexOf(sp);
 	}
 	public void duplicateScenePrimitive(){
 		if (mCurrentSelection==-1)return;

@@ -99,7 +99,8 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 			int b = getLineIndex(cy);
 			int bo = zbuffer.getLineIndex(cy+ry)+rx;
 			for (int cx=fx; cx<tx; cx++)
-				if ((!transparent || dataVisible[b+cx]) && zbuffer.inBounds(rx+cx,ry+cy)){
+				if ((!transparent || dataVisible[b+cx]) &&
+					zbuffer.inBounds(rx+cx,ry+cy)){
 					zbuffer.customPut(bo+cx,data[b+cx]+z);
 //					System.out.println("!");
 				}
@@ -109,7 +110,7 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 
 
 	public Vector3i centerI(){
-		return new Vector3i(x,y,z);
+		return new Vector3i(x+w/2,y+h/2,z);
 	}
 	public void move(int x, int y, int z){
 		this.x+=x;
@@ -118,13 +119,13 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 	}
 
 	public void moveTo(Vector3i to){
-		this.x=to.x;
-		this.y=to.y;
+		this.x=to.x-w/2;
+		this.y=to.y-h/2;
 		this.z=to.z;
 	}
 	public void moveTo(int x, int y, int z){
-		this.x=x;
-		this.y=y;
+		this.x=x-w/2;
+		this.y=y-h/2;
 		this.z=z;
 	}
 
