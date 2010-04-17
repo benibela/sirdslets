@@ -22,6 +22,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	@Override
 	public void start(Object manager){
 		super.start(manager);
+		mLastLevel = 1000;
 		
 		mManager.setShowFloaterCursor(true);
 		
@@ -49,6 +50,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 			setEditingState(EditingState.ES_NORMAL);
 			return;
 		}
+		mDragging = false;
 		super.startLevel(level);
 		setEditingState(EditingState.ES_NORMAL);
 		mScene.setFloaterText("level","level: "+mLevel, 0xffddddcc);
@@ -216,10 +218,11 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 					}
 				}
 				if (mManager.isMousePressed(MouseEvent.BUTTON1) && mCurrentSelection != -1) {
-					mDragging = (rx-mSelectionStartrx)*(rx-mSelectionStartrx)+
-						    (ry-mSelectionStartry)*(ry-mSelectionStartry) >= 25;
-					moveSelectedObject(rx,ry,shift?1:10);
-				}
+					mDragging |= (rx-mSelectionStartrx)*(rx-mSelectionStartrx)+
+						     (ry-mSelectionStartry)*(ry-mSelectionStartry) >= 25;
+					if (mDragging)
+						moveSelectedObject(rx,ry,shift?1:10);
+				} else mDragging = false;
 
 				int z=-1;
 				for (ScenePrimitive sp: mLevelPrimitives){
@@ -283,7 +286,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 						mEditedMover.positions.set(mCurrentSelectionPosition, newPos);
 					}
 
-				}
+				} else mDragging = false;
 
 
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_Z) && mCurrentSelectionPosition!=-1){
@@ -457,15 +460,21 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 				mLevelModifier.set(mCurrentSelection, null);
 			}
 		} else {
+			float moverTime=0;
 			if (apm==null) apm=new ArrayList<PrimitiveModifier>();
 			else {
-				for (PrimitiveModifier mod: apm)
+				for (PrimitiveModifier mod: apm){
+					if (mod instanceof PrimitiveMover)
+						moverTime=((PrimitiveMover)mod).time;
 					mScene.removePrimitiveModifier(mod);
+				}
 				apm.clear();
 			}
 			ArrayList<Map<String, Object>> temp=(ArrayList<Map<String, Object>>)((new JSONReader()).read(s));
 			for (Map<String, Object> map: temp){
 				PrimitiveModifier pm=mScene.deserializePrimitiveModifier(map, mLevelPrimitives.get(mCurrentSelection));
+				if (pm instanceof PrimitiveMover)
+					((PrimitiveMover)pm).time = moverTime;
 				mScene.addPrimitiveModifier(pm);
 				apm.add(pm);
 			}

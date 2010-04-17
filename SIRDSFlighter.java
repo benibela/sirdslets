@@ -29,7 +29,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
 	//World
-	protected int firstLevel = 5;
+	protected int firstLevel = 1;
+	public int mLastLevel = 5;
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
@@ -78,6 +79,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 
 	protected void startLevel(int level){
+		if (level > mLastLevel) return;
 		mScene.clear();
 		mManager.suspendRendering();
 		mScene.removeFloater("zerror");
@@ -139,7 +141,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 				if (((Cuboid)sp).maxx>mLevelLength) mLevelLength=((Cuboid)sp).maxx;
 			
 		mLevelEnd=mScene.setZSprite("levelEnd",new ZSprite());
-		mLevelEnd.setToString("Level "+(level+1),mManager.getGraphics().getFontMetrics(
+		mLevelEnd.setToString((level<mLastLevel)?("Level "+(level+1)):("Game Over"),mManager.getGraphics().getFontMetrics(
 			//new Font("Arial Black",Font.BOLD,100)),0,15);
 			new Font("Arial Black",Font.BOLD,300)),0,15);
 		//mLevelEnd.rotate90R();
