@@ -245,8 +245,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 			mShipP.z=MAXFLYZ;
 			if (mShipV.z>-0.01) mShipV.z=-0.01;
 		}
-		if (mShipP.x< -mLevelScroll+ZDraw.MAXZ+30) { //there are maxz unreachable pixel at the left screen side
-			mShipP.x=-mLevelScroll+ZDraw.MAXZ+30;
+		if (mShipP.x< -mLevelScroll+ZDraw.SIRDW+mShip.w/2) { //there are maxz unreachable pixel at the left screen side
+			mShipP.x=-mLevelScroll+ZDraw.SIRDW+mShip.w/2;
 			if (mShipV.x<0.01) mShipV.x=0.01;
 		}
 		if (mShipP.x> -mLevelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
@@ -277,9 +277,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 				mScene.removePrimitive(c);
 				break;
 			}
+			Cuboid cWallBoundingBox = c.fastClone();
+			cWallBoundingBox.minz+=3;
+			cWallBoundingBox.maxz-=2;
 			for (int j=0;j<mLevelPrimitives.size();j++)
 				if (mLevelPrimitives.get(j) instanceof Cuboid){
-					if (c.intersect(((Cuboid)mLevelPrimitives.get(j)), -20, 0)){
+					if (cWallBoundingBox.intersect(((Cuboid)mLevelPrimitives.get(j)), -20, 0)){
 						mShoots.remove(i);
 						mScene.removePrimitive(c);
 						break;
@@ -390,7 +393,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		int ox=mShip.x, oy=mShip.y, oz=mShip.z;
 		//if ((mShootCount & 1) != 0) oy=mShip.y+mShip.h;
 		oy=mShip.y+mShip.h/2;
-		int sx=60, sy=16, sz=8;
+		int sx=60, sy=16, sz=8;//if you change the height, also change the shoot collision bounding box in calculateframe
 		fire.minx=ox-sx/2;
 		fire.miny=oy-sy/2;
 		fire.minz=Math.max(0,oz-sz/2);

@@ -264,6 +264,7 @@ public class SceneManager {
 		String type=(String)map.get("type");
 		if (type.equals("PrimitiveMover")) pm=new PrimitiveMover(parent);
 		else if (type.equals("PrimitiveAnimator")) pm=new PrimitiveAnimator(parent);
+		else if (type.equals("PrimitiveScaler")) pm=new PrimitiveScaler(parent);
 		else if (type.equals("PrimitiveMarker")) pm=new PrimitiveMarker(parent);
 		else throw new IllegalArgumentException("invalid type: "+type);
 		pm.jsonDeserialize(map);

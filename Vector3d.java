@@ -1,7 +1,7 @@
 
 import java.util.ArrayList;
 
-class Vector3d implements JSONSerializable{
+public class Vector3d implements JSONSerializable{
 	public double x,y,z;
 	public Vector3d(){
 		x=0;
