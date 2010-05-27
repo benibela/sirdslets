@@ -191,7 +191,8 @@ public class SceneManager {
 			//System.out.println(new URL(getCodeBase(),name));
 			return new URL(mCodeBase,name);
 		} catch (Exception e){}
-		return null;
+		throw new IllegalArgumentException("File not found: "+name);
+		//return null;
 	}
 
 

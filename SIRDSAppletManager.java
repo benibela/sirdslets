@@ -12,6 +12,8 @@ import java.awt.*;
 import java.io.*; 
 import javax.imageio.*; 
 import java.net.*;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 
 class TimedFloater extends Floater{
 	int timetolive;  //time until removal in ms
@@ -36,10 +38,32 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	private boolean mAllowLoading=false;
 	private boolean mAllowSaving=false;
 	private boolean mShowFloaterCursor=false;
+	public boolean mSoundEnabled=true;
 //	private boolean mFloaterCursorZ=false;
 	
 	private java.util.concurrent.locks.Lock renderLock=new java.util.concurrent.locks.ReentrantLock();
-			
+
+	class AudioClipWrapper implements AudioClip{
+		private AudioClip mRealClip;
+
+		public AudioClipWrapper(AudioClip realClip){
+			mRealClip = realClip;
+		}
+
+		public void play() {
+			if (mSoundEnabled) mRealClip.play();
+		}
+
+		public void loop() {
+			if (mSoundEnabled) mRealClip.loop();
+		}
+
+		public void stop() {
+			mRealClip.stop();
+		}
+
+	}
+
 	//sird id: (.*)\.png => load (\1).png
 	//          .*random.* => random (checks for "color" and "strid")
 	//          color (black,gray) => single color
@@ -101,7 +125,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		c.add("black");
 		c.add("gray");
 	}
-	private void initGUI(){		
+	private void initGUI(){
+		setFocusable(true);
 		setLayout(new GridBagLayout());
 		GridBagConstraints gbc = new GridBagConstraints();
 
@@ -117,23 +142,55 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		
 		startPanel=new Panel();
 		startPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-		startPanel.setLayout(new GridLayout(0,1));
+		startPanel.setLayout(new GridBagLayout());
 		
-		
+		gbc = new GridBagConstraints();
+		gbc.fill = GridBagConstraints.HORIZONTAL;
 		Label title=new Label("Available SIRDSlets:");
 		title.setFont(getFont().deriveFont(Font.BOLD));
-		startPanel.add(title);
-		
+		startPanel.add(title,gbc);
+
+		gbc.gridx=1;
+		Button copyright=new Button("\u00a9\u0338");
+		copyright.addActionListener(new ActionListener(){
+		public void actionPerformed(ActionEvent e){
+			JOptionPane.showMessageDialog(null, "Written by\n" +
+				"        Benito van der Zander\n" +
+				"        www.benibela.de\n"+
+				"        benito@benibela.de\n\n" +
+				"Algorithm created by\n" +
+				"        Lewey Geselowitz\n" +
+				"        www.leweyg.com" +
+				"\n\n" +
+				"Sounds from:\n" +
+				"        amazingsounds.iespana.es\n" +
+				"        www.pacdv.com/sound\n" +
+				"        diode111", "Copyleft", JOptionPane.INFORMATION_MESSAGE);
+		}});
+		startPanel.add(copyright, gbc);
+	
+		//gbc.fill = GridBagConstraints.NONE;
 		for (int i=0;i< sirdslets.size();i++){
-			Button b = new Button(sirdslets.get(i).getSIRDletName());
+			gbc.gridy=i+1;
+			gbc.gridx=0;
+			Button b = new Button(sirdslets.get(i).getName());
 			final SIRDSlet temp=sirdslets.get(i);
 			b.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
 				startSIRDSlet(temp);
 			}});
-			startPanel.add(b);
+			startPanel.add(b,gbc);
+			
+			
+			Button helpButton = new Button("?");
+			helpButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				JOptionPane.showMessageDialog(null, temp.getDescription(), "Help", JOptionPane.INFORMATION_MESSAGE);
+			}});
+			gbc.gridx=1;
+			startPanel.add(helpButton,gbc);
 		}
-
+		startPanel.doLayout();
 		
 
 		optionPanel=new Panel();
@@ -143,8 +200,8 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		title=new Label("Options:");
 		title.setFont(getFont().deriveFont(Font.BOLD));
 		optionPanel.add(title);
-		optionPanel.add(new Label(""));
-		
+		optionPanel.add(new Label(" "));
+
 		frame1SIRDChoice = new Choice();
 		frame1SIRDChoice.add("!height-map");
 		initSIRDChoice(frame1SIRDChoice);
@@ -207,6 +264,15 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			}});
 		optionPanel.add(showFPS);
 
+		optionPanel.add(new Label("sound:"));
+		Checkbox sound=new Checkbox();
+		sound.setState(true);
+		sound.addItemListener(new ItemListener(){
+			public void itemStateChanged(ItemEvent e){
+				self.mSoundEnabled = e.getStateChange() == ItemEvent.SELECTED;
+			}});
+		optionPanel.add(sound);
+
 		final Button freeze=new Button("freeze");
 		freeze.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
@@ -229,9 +295,10 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 			}});
 		optionPanel.add(close);
 		
-		
+		gbc = new GridBagConstraints();
 		gbc.anchor = GridBagConstraints.CENTER;
 		gbc.gridy=1;
+		gbc.weightx=0.1;
 		gbc.weighty=0.5;
 		add(startPanel, gbc);
 		gbc.gridy=2;
@@ -256,14 +323,20 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 		scene.height=getSize().height;
 		scene.setBaseURL(getCodeBase());
 
+		ZSprite logo = scene.setZSprite("logo",scene.createZSprite("logo.png"));
+		logo.x=(scene.width-logo.w)/2+30;
+		logo.y=(scene.height-logo.h)/2-30;
+		logo.z=0;
+
 		renderer=new RendererSoftware();
 		renderer.init(this,scene);
 		
 		timePerFrame=40; 
 
 		setFrameSIRD("squares.png","");
-		
-			}
+
+
+	}
 
 	
 	@Override
@@ -324,7 +397,7 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	public void run()
 	{
 		repaint();
-		
+
 		// While update thread is current thread
 		//int curTimePerFrameRate=0;
 		//int lastFrameTime=System.currentTimeMillis();
@@ -539,6 +612,12 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	}
 
 	public void mouseClicked(MouseEvent me) {
+		//set focus to the current window because it is not
+		//automatically given if there is no awt widget 
+		requestFocus();
+		requestFocusInWindow();
+		requestFocus();
+
 	}
 
 	public void mousePressed(MouseEvent me) {
@@ -597,5 +676,13 @@ public class SIRDSAppletManager extends Applet implements Runnable,  KeyListener
 	}
 	public boolean isKeyPressedOnce(int vk){
 		return isKeyPressed(vk) && isKeyPressedChanged(vk);
+	}
+
+
+
+	//============Sound================
+	public AudioClip getAudioClip(String filename){
+//		System.out.println(scene.getFileURL(filename));
+		return new AudioClipWrapper(newAudioClip(scene.getFileURL(filename)));
 	}
 }

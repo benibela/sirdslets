@@ -3,5 +3,6 @@ public interface SIRDSlet{
 	public void stop();
 	public void calculateFrame(long timeMS);
 	
-	public String getSIRDletName();
+	public String getName();
+	public String getDescription();
 }

@@ -1,7 +1,10 @@
+import java.applet.AudioClip;
 import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class SIRDSFlighter implements SIRDSlet	{
@@ -30,13 +33,20 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected int mShootTimeout, mShootCount;
 	//World
 	protected int firstLevel = 1;
-	public int mLastLevel = 5;
+	public int mLastLevel = 6;
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
 	protected ArrayList<ArrayList<PrimitiveModifier>> mLevelModifier;
 	protected HashMap<String, ZSprite> mImageCache = new HashMap<String, ZSprite>();
 	private ArrayList<PrimitiveModifier> mSpecialModifier;
+
+
+	private AudioClip mSoundFire;
+	private AudioClip mSoundCollision[] = new AudioClip[2];
+	private AudioClip mSoundSmallExplosion[] = new AudioClip[2];
+	private AudioClip mSoundLargeExplosion;
+
 
 	public void start(Object manager){
 		mManager=(SIRDSAppletManager)manager;
@@ -46,6 +56,15 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		mShootTimeout = 450;
 		mShootCount = 0;
+
+
+		mSoundFire = mManager.getAudioClip("flighter/lasersword_iespana.wav"); //all free sounds \/
+		mSoundCollision[0] = mManager.getAudioClip("flighter/collision0_pacdv.wav");
+		mSoundCollision[1] = mManager.getAudioClip("flighter/collision1_pacdv.wav");
+		mSoundSmallExplosion[0] = mManager.getAudioClip("flighter/smallexplosion0.wav"); //public domain even
+		mSoundSmallExplosion[1] = mManager.getAudioClip("flighter/smallexplosion1.wav"); //"
+		mSoundLargeExplosion = mManager.getAudioClip("flighter/vehicleexplosion_diode111.wav");
+
 		startLevel(firstLevel);
 	}
 	protected ScenePrimitive addSerializedObject(Map<String, Object> m){
@@ -302,6 +321,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 						mScene.removePrimitive(c);
 						mScene.removePrimitive(mLevelPrimitives.get(j));
 						mLevelPrimitives.remove(j);
+						mSoundSmallExplosion[(int)(Math.random()*mSoundSmallExplosion.length)].play();
 						break;
 					}
 				}
@@ -317,6 +337,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			else if (sp instanceof ZSprite)
 				coll|=mShip.intersect((ZSprite)sp,0,0,true);
 		if (coll) {
+			mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
 			updateLife();
 			if (mCurrentLife<=0) return; //game end
 		}
@@ -370,6 +391,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 		}
 
 		if (mCurrentLife<=0) {
+			mSoundLargeExplosion.play();
+			
 			//You died now
 			mScene.clear();
 
@@ -388,6 +411,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private void shipFire(){
 		if (mCurTime - mLastShoot < mShootTimeout)
 			return;
+		mSoundFire.play();
 		mLastShoot=mCurTime;
 		Cuboid fire=new Cuboid();
 		int ox=mShip.x, oy=mShip.y, oz=mShip.z;
@@ -405,8 +429,16 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShootCount++;
 	}
 	
-	public String getSIRDletName(){
+	public String getName(){
 		return "SIRDS Flighter";
+	}
+	public String getDescription(){
+		return "Side scroller where you fly a space ship through a parkour\n\n" +
+			"Don't collide with anything, destroy mines and stay away from black and white holes.\n\n" +
+			"Controls:\n" +
+			"\tArrows: Movement in the xy-plane\n" +
+			"\tShift/Control: Movement along the z-axis (near/far)\n" +
+			"\tSpace: Fire";
 	}
 	
 }

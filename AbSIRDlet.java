@@ -150,7 +150,14 @@ public class AbSIRDlet implements SIRDSlet
 		mf.z=mCurrentZ;
 	}
 	
-	public String getSIRDletName(){	
+	public String getName(){	
 		return "SIRD Painter";
+	}
+	public String getDescription(){
+		return "This lets you paint your own SIRDS\n\n" +
+			"Controls: \n" +
+			"\ta,s: up/down" +
+			"\td,f: drawing radius\n" +
+			"mouse: draw/select height\n";
 	}
 }

@@ -513,7 +513,20 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		mState = EditingState.ES_MOVER;
 	}
 
-	public String getSIRDletName(){
+	public String getName(){
 		return "SIRDS Flighter (Editor)";
+	}
+	public String getDescription(){
+		return "Level editor of the SIRDS Flighter\n" +
+			"It need to save the levels to be useful, so it only works if you download the game and run it locally\n\n" +
+			"Controls: \n" +
+			"\tctrl+shift+t: test\n" +
+			"\tctrl+shift+s: save\n" +
+			"\tleft/right/page up/page down: scroll\n" +
+			"\ta/s: cursor on z-axis\n" +
+			"\tc/i/b: create element\n" +
+			"\td/r: duplicate/remove\n" +
+			"\t[ctrl]+[shift]+x/y/z: edit cuboid\n" +
+			"\t[ctrl]+m: edit mover/modifier\n";
 	}
 }
