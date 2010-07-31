@@ -154,10 +154,11 @@ public class AbSIRDlet implements SIRDSlet
 		return "SIRD Painter";
 	}
 	public String getDescription(){
-		return "This lets you paint your own SIRDS\n\n" +
-			"Controls: \n" +
-			"\ta,s: up/down" +
-			"\td,f: drawing radius\n" +
-			"mouse: draw/select height\n";
+		return "This lets you paint your own SIRDS\n\n";
+	}
+	public String getKeys(){
+		return  "a,s\tup/down" +
+			"d,f\tdrawing radius\n" +
+			"mouse\tdraw/select height\n";
 	}
 }

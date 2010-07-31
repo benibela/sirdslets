@@ -5,4 +5,5 @@ public interface SIRDSlet{
 	
 	public String getName();
 	public String getDescription();
+	public String getKeys();
 }

@@ -105,6 +105,9 @@ public class RendererSoftware implements SIRDSRenderer{
 	public void paint(Graphics g){
 		g.drawImage(mBackBuffer, 0, 0, mParent);
 	}
+	public Image getBackBuffer(){
+		return mBackBuffer;
+	}
 	public void finit(){
 		
 	}

@@ -123,7 +123,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 		
 		try{
 			JSONReader json = new JSONReader();
-			BufferedReader br = new BufferedReader(new FileReader(mScene.getFileURL("flighter/level"+level+".lev").getFile()));
+
+			BufferedReader br = new BufferedReader(new InputStreamReader(mScene.getFileURL("flighter/level"+level+".lev").openStream()));
+			//BufferedReader br = new BufferedReader(new FileReader(mScene.getFileURL("flighter/level"+level+".lev").getFile()));
 			String temp="",temp2="";
 			do {
 				temp=temp+temp2;
@@ -147,10 +149,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 		} catch(IllegalArgumentException e){
 			mLevelPrimitives=new ArrayList<ScenePrimitive>();
 			mLevelModifier=new ArrayList<ArrayList<PrimitiveModifier>>();
+			mSpecialModifier=new ArrayList<PrimitiveModifier>();
 			mScene.setFloaterText("zerror","error:"+e.getMessage()).y=mScene.height/2;
 		} catch (Exception e){
 			mLevelPrimitives=new ArrayList<ScenePrimitive>();
 			mLevelModifier=new ArrayList<ArrayList<PrimitiveModifier>>();
+			mSpecialModifier=new ArrayList<PrimitiveModifier>();
 			mScene.setFloaterText("zerror","Level "+level+" missing").y=mScene.height/2;
 		}
 
@@ -439,6 +443,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 			"\tArrows: Movement in the xy-plane\n" +
 			"\tShift/Control: Movement along the z-axis (near/far)\n" +
 			"\tSpace: Fire";
+	}
+
+	public String getKeys(){
+		return "Arrows\tMovement in the xy-plane\n" +
+			"Shift/Control\tMovement along the z-axis (near/far)\n" +
+			"Space\tFire";
 	}
 	
 }

@@ -518,15 +518,17 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	}
 	public String getDescription(){
 		return "Level editor of the SIRDS Flighter\n" +
-			"It need to save the levels to be useful, so it only works if you download the game and run it locally\n\n" +
-			"Controls: \n" +
-			"\tctrl+shift+t: test\n" +
-			"\tctrl+shift+s: save\n" +
-			"\tleft/right/page up/page down: scroll\n" +
-			"\ta/s: cursor on z-axis\n" +
-			"\tc/i/b: create element\n" +
-			"\td/r: duplicate/remove\n" +
-			"\t[ctrl]+[shift]+x/y/z: edit cuboid\n" +
-			"\t[ctrl]+m: edit mover/modifier\n";
+			"It need to save the levels to be useful, so it only works if you download the game and run it locally\n\n";
+			
+	}
+	public String getKeys(){
+		return "ctrl+shift+t\ttest\n" +
+			"ctrl+shift+s\tsave\n" +
+			"left/right/page up/page down\tscroll\n" +
+			"a/s\tcursor on z-axis\n" +
+			"c/i/b\tcreate element\n" +
+			"d/r\tduplicate/remove\n" +
+			"[ctrl]+[shift]+x/y/z\tedit cuboid\n" +
+			"[ctrl]+m\tedit mover/modifier\n";
 	}
 }
