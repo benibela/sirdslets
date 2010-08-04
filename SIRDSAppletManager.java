@@ -12,6 +12,8 @@ import java.awt.*;
 import java.io.*; 
 import javax.imageio.*; 
 import java.net.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -21,6 +23,10 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
+import sun.awt.VerticalBagLayout;
 
 class TimedFloater extends Floater{
 	int timetolive;  //time until removal in ms
@@ -38,7 +44,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	private boolean mInvert = false; //false: parallel, true: cross eyes
 	private SIRDSAppletManager self; //=this, but also usable in anonymous sub classes
 	
-	private SIRDSlet curSIRDSlet=null;
+	private SIRDSlet curSIRDSlet=null, selectedSIRDSlet=null;
 	private ArrayList<SIRDSlet> sirdslets=new ArrayList<SIRDSlet>();
 
 	private boolean mPauseScene=true;
@@ -49,12 +55,21 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 //	private boolean mFloaterCursorZ=false;
 	
 	private java.util.concurrent.locks.Lock renderLock=new java.util.concurrent.locks.ReentrantLock();
+	private boolean  renderLockLocked = false;
 
 	private Image mGuiDoubleBuffer;
 	private boolean mShowInfos;
 	private String mFPS;
-	private boolean mNewMenuVisibility;
-	private int mMenuAnimation;
+
+	JPanel startPanel;
+	JPanel optionPanel;
+	JPanel mSirdletStartPanel;
+	JTextArea mSirdsletKeys;
+	JLabel mSirdsletDescription;
+	JButton mSirdsletStart;
+	JComboBox frame1SIRDChoice,frame2SIRDChoice;
+
+	private Translations mTranslator;
 
 	class AudioClipWrapper implements AudioClip{
 		private AudioClip mRealClip;
@@ -83,27 +98,27 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	//			else => "" => (in 1 => heightmap, in 2 => = 1)
 	//see initSIRDChoice
 	private int str2Color(String color){
-		if ("white".equals(color)) return 0xFFffffff;
-		if ("gray".equals(color)) return 0xFF888888;
-		if ("black".equals(color)) return 0xFF000000;
-		if ("red".equals(color)) return 0xFFff0000;
-		if ("green".equals(color)) return 0xFF00ff00;
-		if ("blue".equals(color)) return 0xFF0000ff;
-		if ("yellow".equals(color)) return 0xFFffff00;
-		if ("violet".equals(color)) return 0xFFff00ff;
-		if ("cyan".equals(color)) return 0xFF00ffff;
+		if (mTranslator.white().equals(color)) return 0xFFffffff;
+		if (mTranslator.gray().equals(color)) return 0xFF888888;
+		if (mTranslator.black().equals(color)) return 0xFF000000;
+		if (mTranslator.red().equals(color)) return 0xFFff0000;
+		if (mTranslator.green().equals(color)) return 0xFF00ff00;
+		if (mTranslator.blue().equals(color)) return 0xFF0000ff;
+		if (mTranslator.yellow().equals(color)) return 0xFFffff00;
+		if (mTranslator.violet().equals(color)) return 0xFFff00ff;
+		if (mTranslator.cyan().equals(color)) return 0xFF00ffff;
 		return 0;
 	}
 	private int[] singleSIRDData(String id){
 		if (id.endsWith(".png")) 
 			return ZDraw.GetImageSIRDData(scene.loadImage(id));
-		if (id.contains("random")){
+		if (id.contains(mTranslator.random())){
 			int c = str2Color(id.substring(0,id.indexOf(" ")));
-			return ZDraw.GetRandSIRDData(id.contains("color"), id.contains("strid"), c!=0?c:0xffffffff);
+			return ZDraw.GetRandSIRDData(id.contains(mTranslator.colored()), id.contains(mTranslator.stripes()), c!=0?c:0xffffffff);
 		}
-		if (id.equals("black")||id.equals("gray")) {
+		if (id.equals(mTranslator.black())||id.equals(mTranslator.gray())) {
 			int[] temp=new int[ZDraw.SIRDW*ZDraw.SIRDH];
-			Arrays.fill(temp,id.equals("black")?0xff000000:0xff888888);
+			Arrays.fill(temp,id.equals(mTranslator.black())?0xff000000:0xff888888);
 			return temp;
 		}
 		return null;
@@ -116,28 +131,25 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		frame1SIRDChoice.setSelectedItem(sird1);
 		frame2SIRDChoice.setSelectedItem(sird2);
 	}
-	JPanel startPanel;
-	JPanel optionPanel;
-	JComboBox frame1SIRDChoice,frame2SIRDChoice;
+
 	private void initSIRDChoice(JComboBox c){
-		c.addItem("white random");
-		c.addItem("red random");
-		c.addItem("green random");
-		c.addItem("blue random");
-		c.addItem("yellow random");
-		c.addItem("violet random");
-		c.addItem("cyan random");
-		c.addItem("colored random");
-		c.addItem("white random strides");
-		c.addItem("colored random strides");
+		c.addItem(mTranslator.white() + " "+mTranslator.random());
+		c.addItem(mTranslator.red() + " "+ mTranslator.random());
+		c.addItem(mTranslator.green() + " "+ mTranslator.random());
+		c.addItem(mTranslator.blue() + " "+ mTranslator.random());
+		c.addItem(mTranslator.yellow() + " "+ mTranslator.random());
+		c.addItem(mTranslator.violet() + " "+ mTranslator.random());
+		c.addItem(mTranslator.cyan() + " "+ mTranslator.random());
+		c.addItem(mTranslator.colored() + " "+ mTranslator.random());
+		c.addItem(mTranslator.white() + " "+ mTranslator.random()+ " "+mTranslator.stripes());
+		c.addItem(mTranslator.colored() + " "+ mTranslator.random()+ " "+mTranslator.stripes());
 		c.addItem("gold.png");
 		c.addItem("tiger.png");
 		c.addItem("squares.png");
-		c.addItem("black");
-		c.addItem("gray");
+		c.addItem(mTranslator.black());
+		c.addItem(mTranslator.gray());
 	}
 	private void initGUI(){
-		mNewMenuVisibility=true;
 		setFocusable(true);
 		setLayout(new GridBagLayout());
 		GridBagConstraints gbc = new GridBagConstraints();
@@ -145,15 +157,20 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		startPanel=new JPanel();
 		startPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		startPanel.setLayout(new GridBagLayout());
-		
+		startPanel.setBackground(Color.BLUE);
+
 		gbc = new GridBagConstraints();
+		gbc.insets = new Insets(2, 2, 2,2);
 		gbc.fill = GridBagConstraints.HORIZONTAL;
-		JLabel title=new JLabel("Available SIRDSlets:");
-		title.setFont(getFont().deriveFont(Font.BOLD));
+		JLabel title=new JLabel(mTranslator.AvailableSIRDSlets());
+		title.setFont(getFont().deriveFont(Font.BOLD,22));
+		title.setHorizontalAlignment(SwingConstants.CENTER);
+		title.setForeground(Color.WHITE);
+		//title.setOpaque(true);
 		startPanel.add(title,gbc);
 
 		gbc.gridx=1;
-		JButton copyright=new JButton("\u00a9\u0338");
+		/*JButton copyright=new JButton("\u00a9\u0338");
 		copyright.addActionListener(new ActionListener(){
 		public void actionPerformed(ActionEvent e){
 			JOptionPane.showMessageDialog(null, "Written by\n" +
@@ -169,7 +186,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 				"        www.pacdv.com/sound\n" +
 				"        diode111", "Copyleft", JOptionPane.INFORMATION_MESSAGE);
 		}});
-		startPanel.add(copyright, gbc);
+		startPanel.add(copyright, gbc);*/
 	
 		//gbc.fill = GridBagConstraints.NONE;
 		for (int i=0;i< sirdslets.size();i++){
@@ -179,52 +196,65 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			final SIRDSlet temp=sirdslets.get(i);
 			b.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
-				startSIRDSlet(temp);
+				//startSIRDSlet(temp);
+				selectSIRDSlet(temp);
+
 			}});
 			startPanel.add(b,gbc);
 			
-			
+			/*
 			JButton helpButton = new JButton("?");
 			helpButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
 				JOptionPane.showMessageDialog(null, temp.getDescription(), "Help", JOptionPane.INFORMATION_MESSAGE);
 			}});
 			gbc.gridx=1;
-			startPanel.add(helpButton,gbc);
+			startPanel.add(helpButton,gbc);*/
 		}
 		startPanel.setOpaque(true);
 		startPanel.doLayout();
 		
 
 		optionPanel=new JPanel();
+		Color optionPanelLabelColor = Color.BLACK;
 		optionPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-		optionPanel.setLayout(new GridLayout(0,2));
-
-		title=new JLabel("Options:");
-		title.setFont(getFont().deriveFont(Font.BOLD));
+		GridLayout lay = new GridLayout(0,2);
+		lay.setHgap(1); lay.setVgap(1);
+		optionPanel.setLayout(lay);
+		optionPanel.setBackground(Color.CYAN);
+		
+		title=new JLabel(mTranslator.Options());
+		title.setFont(getFont().deriveFont(Font.BOLD,16));
+		title.setForeground(optionPanelLabelColor);
 		optionPanel.add(title);
 		optionPanel.add(new JLabel(" "));
 
 		frame1SIRDChoice = new JComboBox();
-		frame1SIRDChoice.addItem("!height-map");
+		frame1SIRDChoice.setLightWeightPopupEnabled(false);
+		frame1SIRDChoice.addItem("!"+mTranslator.heightmap());
 		initSIRDChoice(frame1SIRDChoice);
 		frame1SIRDChoice.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e) {
 				setFrameSIRD((String)e.getItem(),mFrame2SIRDId);
 			}
 		});
-		optionPanel.add(new JLabel("first frame:"));
+		JLabel label = new JLabel(mTranslator.firstFrame());
+		label.setForeground(optionPanelLabelColor);
+		optionPanel.add(label);
 		optionPanel.add(frame1SIRDChoice);
 
 		frame2SIRDChoice = new JComboBox();
-		frame2SIRDChoice.addItem("!same as above");
+		frame2SIRDChoice.setLightWeightPopupEnabled(false);
+		frame2SIRDChoice.addItem("!"+mTranslator.sameAsAbove());
 		frame2SIRDChoice.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e) {
 				setFrameSIRD(mFrame1SIRDId,(String)e.getItem());
 			}
 		});
 		initSIRDChoice(frame2SIRDChoice);
-		optionPanel.add(new JLabel("second frame:"));
+		label = new JLabel(mTranslator.secondFrame());
+		label.setForeground(optionPanelLabelColor);
+		optionPanel.add(label);
 		optionPanel.add(frame2SIRDChoice);
 
 		/*final TextField secondsPerFrame=new TextField();
@@ -239,16 +269,22 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			}});
 		optionPanel.add(secondsPerFrame);*/
 
-		optionPanel.add(new JLabel("invert (cross eye)"));
+		label = new JLabel(mTranslator.invertCE());
+		label.setForeground(optionPanelLabelColor);
+		optionPanel.add(label);
 		JCheckBox inverter=new JCheckBox();
+		inverter.setOpaque(false);
 		inverter.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e){
 				renderer.setInversion(e.getStateChange()==ItemEvent.SELECTED);
 			}});
 		optionPanel.add(inverter);
 
-		optionPanel.add(new JLabel("use random offset:"));
+		label = new JLabel(mTranslator.useRandomOffset());
+		label.setForeground(optionPanelLabelColor);
+		optionPanel.add(label);
 		JCheckBox randomOffset=new JCheckBox();
+		randomOffset.setOpaque(false);
 		randomOffset.setSelected(true);
 		randomOffset.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e){
@@ -257,16 +293,22 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			}});
 		optionPanel.add(randomOffset);
 
-		optionPanel.add(new JLabel("show performance:"));
+		label = new JLabel(mTranslator.showPerformance());
+		label.setForeground(optionPanelLabelColor);
+		optionPanel.add(label);
 		JCheckBox showFPS=new JCheckBox();
+		showFPS.setOpaque(false);
 		showFPS.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e){
 				mShowInfos = e.getStateChange()==ItemEvent.SELECTED;
 			}});
 		optionPanel.add(showFPS);
 
-		optionPanel.add(new JLabel("sound:"));
+		label = new JLabel(mTranslator.sound());
+		label.setForeground(optionPanelLabelColor);
+		optionPanel.add(label);
 		JCheckBox sound=new JCheckBox();
+		sound.setOpaque(false);
 		sound.setSelected(true);
 		sound.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e){
@@ -274,27 +316,63 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			}});
 		optionPanel.add(sound);
 
-		final JButton freeze=new JButton("freeze");
+		final JButton freeze=new JButton(mTranslator.freeze());
 		freeze.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
-				if ("freeze".equals(freeze.getLabel())){
-					freeze.setLabel("continue");
+				if (mTranslator.freeze().equals(freeze.getLabel())){
+					freeze.setLabel(mTranslator.continu());
 					self.suspendRendering();
+					renderLockLocked = true;
 				} else {
-					freeze.setLabel("freeze");
+					freeze.setLabel(mTranslator.freeze());
 					self.resumeRendering();
+					renderLockLocked = false;
 				}
 			}});
 		optionPanel.add(freeze);
-		JButton close=new JButton("close menu");
+		JButton close=new JButton(mTranslator.closeMenu());
 		close.addActionListener(new ActionListener(){ 
 			public void actionPerformed(ActionEvent e){
-				mPauseScene=false;
-				mNewMenuVisibility = false;
-				self.requestFocus();
+				animatedSetMenuVisible(false);
 			}});
 		optionPanel.add(close);
-		
+
+		mSirdletStartPanel = new JPanel();
+		mSirdletStartPanel.setBackground(Color.YELLOW);
+
+		mSirdsletDescription = new JLabel("desc");
+		mSirdsletDescription.setForeground(Color.BLACK);
+		mSirdsletKeys = new JTextArea();
+		mSirdsletKeys.setOpaque(false);
+		//mSirdsletKeys.setBackground(mSirdsletDescription.getBackground());
+		//mSirdsletKeys.setForeground(mSirdsletDescription.getForeground());
+		mSirdsletKeys.setForeground(Color.BLACK);
+		mSirdsletKeys.setEditable(false);
+		mSirdsletKeys.setTabSize(6);
+		mSirdsletStart = new JButton(mTranslator.start());
+		mSirdsletStart.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				startSIRDSlet(selectedSIRDSlet);
+			}
+		});
+		mSirdletStartPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+		mSirdletStartPanel.setLayout(new GridBagLayout());
+		gbc = new GridBagConstraints();
+		gbc.gridy = 0;
+		gbc.insets.top = 3;
+		gbc.insets.bottom = 3;
+		gbc.fill = GridBagConstraints.HORIZONTAL;
+		gbc.weightx = 0.5;
+		mSirdletStartPanel.add(mSirdsletDescription,gbc);
+		gbc.gridy = 1;
+		gbc.weightx = 0.7;
+		mSirdletStartPanel.add(mSirdsletKeys,gbc);
+		gbc.fill = GridBagConstraints.NONE;
+		gbc.gridy = 2;
+		mSirdletStartPanel.add(mSirdsletStart,gbc);
+
+		mSirdletStartPanel.setVisible(false);
+
 		gbc = new GridBagConstraints();
 		gbc.anchor = GridBagConstraints.CENTER;
 		gbc.gridy=1;
@@ -302,6 +380,8 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		gbc.weighty=0.5;
 		getContentPane().add(startPanel, gbc);
 		gbc.gridy=2;
+		getContentPane().add(mSirdletStartPanel, gbc);
+		gbc.gridy=3;
 		getContentPane().add(optionPanel, gbc);
 
 		getContentPane().doLayout();
@@ -311,6 +391,8 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	@Override
 	public void init()
 	{
+		mTranslator = Translations.getInstance();
+
 		addKeyListener(this);
 		addMouseListener(this);
 		addMouseMotionListener(this);
@@ -369,6 +451,21 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		mUpdateThread = null;
 	}
 
+	private void selectSIRDSlet(SIRDSlet let){
+		 selectedSIRDSlet = let;
+		 mSirdsletDescription.setText("<html>"+let.getDescription().replace("\n", "<br>")+"</html>");
+		 String keys = let.getKeys()+"\n"+mTranslator.enterSwitches();
+		 Pattern p = Pattern.compile("^[^\t]*\t",Pattern.MULTILINE);
+		 Matcher m = p.matcher(keys);
+		 int max = 0;
+		 while (m.find()) max = Math.max(max, m.group().length());
+		 mSirdsletKeys.setTabSize(max/2+5);
+		 mSirdsletKeys.setText(keys); //there is a swing bug that setting the tab size doesn't update the size
+		 mSirdletStartPanel.doLayout();
+		 animationDoLayout();
+		 animatedSetVisible(mSirdletStartPanel, true);
+	}
+
 	private void startSIRDSlet(SIRDSlet let){
 		suspendRendering();
 		scene.setBaseFontMetric(getGraphics().getFontMetrics(getFont()));
@@ -381,8 +478,9 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		}
 		scene.clear();
 		mPauseScene=false;
-		startPanel.setVisible(false);
-		optionPanel.setVisible(false);
+		animatedSetVisible(startPanel, false);
+		animatedSetVisible(mSirdletStartPanel, false);
+		animatedSetVisible(optionPanel, false);
 		requestFocus();
 		//reset to default
 		setShowFloaterCursor(false);
@@ -456,36 +554,41 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	@Override
 	public void paint(Graphics g)
 	{
-		if (mNewMenuVisibility || optionPanel.isVisible() ) {
-			if (mNewMenuVisibility) {
-				if (!optionPanel.isVisible()){
-					optionPanel.setVisible(true);
-					startPanel.setVisible(true);
-				}
-				mMenuAnimation -= 15;
-				if (mMenuAnimation < 0)
-					mMenuAnimation = 0;
-			} else {
-				mMenuAnimation += 15;
-				if (mMenuAnimation > 500) {
-					startPanel.setVisible(false);
-					optionPanel.setVisible(false);
-					repaint(); //avoid flicker (setVisible(false) shows the panel before it hides it)
+		if (!renderLockLocked) {
+			boolean visibilityChanged = false;
+			for (Map.Entry<Component, ComponentAnimation> e: mComponentAnimations.entrySet()){
+				ComponentAnimation anim = e.getValue();
+				if (anim.destX != anim.x || anim.destY != anim.y) {
+					if (anim.x < anim.destX) anim.x = Math.min(anim.destX, anim.x + 20);
+					else if (anim.x > anim.destX) anim.x = Math.max(anim.destX, anim.x - 20);
+					if (anim.y < anim.destY) anim.y = Math.min(anim.destY, anim.y + 10);
+					else if (anim.y > anim.destY) anim.y = Math.max(anim.destY, anim.y - 10);
+					if (anim.x == anim.destX && anim.y == anim.destY){
+						e.getKey().setVisible(anim.visible);
+						visibilityChanged = true;
+					}
 				}
 			}
+			if (visibilityChanged) animationDoLayout();
 		}
-		if (optionPanel.isVisible()) {
+		if (optionPanel.isVisible() || mSirdletStartPanel.isVisible()) {
 			Graphics g2 = mGuiDoubleBuffer.getGraphics();
 			g2.drawImage(renderer.getBackBuffer(), 0, 0, this);
 
-			g2.translate(optionPanel.getX() - mMenuAnimation, optionPanel.getY());
-			optionPanel.paint(g2);
-			g2.translate(-optionPanel.getX() + mMenuAnimation, -optionPanel.getY());
-
-			g2.translate(startPanel.getX() + mMenuAnimation, startPanel.getY());
-			startPanel.paint(g2);
-			g2.translate(-startPanel.getX() - mMenuAnimation, -startPanel.getY());
-
+			for (Component c: getContentPane().getComponents()){
+				int x; int y;
+				if (!c.isVisible()) continue;
+				if (mComponentAnimations.containsKey(c)) {
+					x = mComponentAnimations.get(c).x;
+					y = mComponentAnimations.get(c).y;
+				} else {
+					x = c.getX();
+					y = c.getY();
+				}
+				g2.translate(x,y);
+				c.paint(g2);
+				g2.translate(-x,-y);
+			}
 
 			if (mShowInfos)
 				g2.drawString(mFPS, 15, 25);
@@ -514,7 +617,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	@Override
 	public String getAppletInfo()
 	{
-		return "jAbSIRD Demo - by Lewey Geselowitz - lewey@leweyg.com";
+		return "SIRDS by Benito van der Zander";
 	}
 	
 	public void registerSIRDSlet(SIRDSlet sirdslet){
@@ -571,6 +674,72 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	}
 
 
+	private static class ComponentAnimation {
+		int x, y;
+		int destX, destY;
+		boolean visible;
+		int progress;
+	}
+	private Map<Component, ComponentAnimation> mComponentAnimations = new HashMap<Component, ComponentAnimation>();
+
+	void animatedSetVisible(Component c, boolean vis){
+		ComponentAnimation anim = mComponentAnimations.get(c);
+		if (anim == null && vis == c.isVisible())
+			return;
+		if (anim != null && vis == anim.visible)
+			return;
+		c.setVisible(true);
+		getContentPane().doLayout();
+		if (anim == null) {
+			anim = new ComponentAnimation();
+			anim.x = c.getX();
+			if (c==mSirdletStartPanel) anim.x += 400;
+			anim.y = c.getY();
+			anim.progress = 0;
+			anim.visible = c.isVisible();
+			mComponentAnimations.put(c, anim);
+		}
+
+		anim.visible = vis;
+		if (vis) {
+			anim.destX = c.getX();
+			anim.destY = c.getY();
+		} else {
+			anim.destX = c.getX();
+			anim.destY = c.getY();
+			if (c==startPanel) anim.destY -= 200;
+			else if (c==optionPanel) anim.destY += 300;	
+			else if (c==mSirdletStartPanel) anim.destX = 600;
+		}
+	}
+
+	boolean animatedIsVisible(Component c){
+		ComponentAnimation anim = mComponentAnimations.get(c);
+		if (anim == null) return c.isVisible();
+		return anim.visible;
+	}
+
+	void animatedSetMenuVisible(boolean vis){
+		requestFocus();
+		animatedSetVisible(mSirdletStartPanel, false);
+		animatedSetVisible(startPanel, vis);
+		animatedSetVisible(optionPanel, vis);
+		getContentPane().doLayout();
+		repaint();
+		mPauseScene=vis;
+	}
+
+	private void animationDoLayout() {
+		getContentPane().doLayout();
+		for (Map.Entry<Component, ComponentAnimation> e: mComponentAnimations.entrySet()){
+			if (e.getValue().visible) { //update position after layout change
+				e.getValue().destX = e.getKey().getX();
+				e.getValue().destY = e.getKey().getY();
+			}
+		}
+		repaint();
+	}
+
 	//event cache to prevent thread problems
 	//(event listener are not called in the render thread, so it can't be
 	//passed directly to the sirdlet)
@@ -586,11 +755,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 
 	public void keyPressed(KeyEvent e){
 		if (e.getKeyCode()==KeyEvent.VK_ESCAPE) {
-			requestFocus();
-			mNewMenuVisibility = !mNewMenuVisibility;
-			getContentPane().doLayout();
-			repaint();
-			mPauseScene=mNewMenuVisibility;
+			animatedSetMenuVisible(!animatedIsVisible(startPanel));
 		} else if (e.getKeyCode()==KeyEvent.VK_O && (e.getModifiers() & InputEvent.CTRL_MASK)!=0 && mAllowLoading) {
 			javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
 			int returnVal = chooser.showOpenDialog(this);

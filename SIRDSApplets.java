@@ -13,8 +13,11 @@ import java.net.*;
 
 public class SIRDSApplets extends SIRDSAppletManager 
 {	
+	@Override
 	public void init()
 	{
+		if (Locale.getDefault() == Locale.GERMAN || Locale.getDefault() == Locale.GERMANY )
+			Translations.setInstance(new Translations_DE());
 		registerSIRDSlet(new SIRDSFlighter());
 		registerSIRDSlet(new AbSIRDlet());
 		registerSIRDSlet(new SIRDSFlighterEditor());

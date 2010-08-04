@@ -434,21 +434,13 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 	
 	public String getName(){
-		return "SIRDS Flighter";
+		return Translations.getInstance().SIRDSFlighter();
 	}
 	public String getDescription(){
-		return "Side scroller where you fly a space ship through a parkour\n\n" +
-			"Don't collide with anything, destroy mines and stay away from black and white holes.\n\n" +
-			"Controls:\n" +
-			"\tArrows: Movement in the xy-plane\n" +
-			"\tShift/Control: Movement along the z-axis (near/far)\n" +
-			"\tSpace: Fire";
+		return Translations.getInstance().SIRDSFlighterDesc();
 	}
-
 	public String getKeys(){
-		return "Arrows\tMovement in the xy-plane\n" +
-			"Shift/Control\tMovement along the z-axis (near/far)\n" +
-			"Space\tFire";
+		return Translations.getInstance().SIRDSFlighterKeys();
 	}
 	
 }
