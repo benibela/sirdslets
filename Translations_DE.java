@@ -86,4 +86,3 @@ public class Translations_DE extends Translations{
 	}
 }
 
-}

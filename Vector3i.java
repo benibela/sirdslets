@@ -2,7 +2,7 @@
 import java.util.ArrayList;
 import java.util.Map;
 
-class Vector3i implements JSONSerializable{
+public class Vector3i implements JSONSerializable{
 	public int x,y,z;
 	public Vector3i(){
 		x=0;
@@ -24,6 +24,9 @@ class Vector3i implements JSONSerializable{
 		y=(int)Math.round(old.y);
 		z=(int)Math.round(old.z);
 	}
+	public Vector3i(final ArrayList<Number> v){
+		jsonDeserialize(v);
+	}
 	public Vector3i abs(){
 		if (x<0) x=-x;
 		if (y<0) y=-y;
@@ -40,6 +43,18 @@ class Vector3i implements JSONSerializable{
 		x+=f;
 		y+=f;
 		z+=f;
+		return this;
+	}
+	public Vector3i sub(final Vector3i v){
+		x-=v.x;
+		y-=v.y;
+		z-=v.z;
+		return this;
+	}
+	public Vector3i sub(final int f){
+		x-=f;
+		y-=f;
+		z-=f;
 		return this;
 	}
 	public Vector3i multiply(final int f){

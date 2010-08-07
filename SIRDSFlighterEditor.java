@@ -38,6 +38,12 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		mBasicElements.put("mine", "{\"image\":\"mine_rot.png\",\"modifier\":[{\"roipos\":[0,0,80,0,160,0,240,0,320,0,400,0,480,0,560,0,640,0],\"roisize\":[80,80],\"type\":\"PrimitiveAnimator\",\"velocity\":6.0}],\"position\":[750,10,10],\"type\":\"ZSprite\"}");
 		mBasicElements.put("black hole", "{\"image\":\"blackhole.png\",\"modifier\":[{\"expfactor\":2,\"mulfactor\":40000,\"subtype\":\"gravitron\",\"type\":\"PrimitiveMarker\"}],\"position\":[1130,0,0],\"type\":\"ZSprite\"}");
 		mBasicElements.put("white hole", "{\"image\":\"whitehole.png\",\"modifier\":[{\"expfactor\":2,\"mulfactor\":-40000,\"subtype\":\"gravitron\",\"type\":\"PrimitiveMarker\"}],\"position\":[3870,0,0],\"type\":\"ZSprite\"}");
+		mBasicElements.put("accelerator right", "{\"image\":\"accr.png\",\"modifier\":[{\"type\":\"PrimitiveMarker\", \"subtype\":\"accelerator\", \"acceleration\":[2,0,0]}],\"type\":\"ZSpriteRepeater\", \"repeat\":[3,1], \"position\":[0,0,0]}");
+		mBasicElements.put("accelerator left", "{\"image\":\"accl.png\",\"modifier\":[{\"type\":\"PrimitiveMarker\", \"subtype\":\"accelerator\", \"acceleration\":[-2,0,0]}],\"type\":\"ZSpriteRepeater\", \"repeat\":[3,1], \"position\":[0,0,0]}");
+		mBasicElements.put("accelerator up", "{\"image\":\"accu.png\",\"modifier\":[{\"type\":\"PrimitiveMarker\", \"subtype\":\"accelerator\", \"acceleration\":[0,-2,0]}],\"type\":\"ZSpriteRepeater\", \"repeat\":[1,3], \"position\":[0,0,0]}");
+		mBasicElements.put("accelerator down", "{\"image\":\"accd.png\",\"modifier\":[{\"type\":\"PrimitiveMarker\", \"subtype\":\"accelerator\", \"acceleration\":[0,2,0]}],\"type\":\"ZSpriteRepeater\", \"repeat\":[1,3], \"position\":[0,0,0]}");
+		mBasicElements.put("accelerator far", "{\"image\":\"accf.png\",\"modifier\":[{\"type\":\"PrimitiveMarker\", \"subtype\":\"accelerator\", \"acceleration\":[0,0,-0.1]}],\"type\":\"ZSpriteRepeater\", \"repeat\":[3,3], \"position\":[0,0,0]}");
+		mBasicElements.put("accelerator near", "{\"image\":\"accn.png\",\"modifier\":[{\"type\":\"PrimitiveMarker\", \"subtype\":\"accelerator\", \"acceleration\":[0,0,0.1]}],\"type\":\"ZSpriteRepeater\", \"repeat\":[3,3], \"position\":[0,0,0]}");
 		startLevel(firstLevel);
 	}
 	@Override
@@ -64,9 +70,15 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 				Map<String, Object> map= (Map<String,Object>)ser.jsonSerialize();
 				if (mLevelModifier.get(i)!=null)
 					map.put("modifier", mLevelModifier.get(i));
-				if (ser instanceof ZSprite)
+				if (ser instanceof ZSprite )
 					for (Map.Entry<String, ZSprite> e: mImageCache.entrySet())
 						if (e.getValue().data==((ZSprite)ser).data){
+							map.put("image",e.getKey());
+							break;
+						}
+				if (ser instanceof ZSpriteRepeater )
+					for (Map.Entry<String, ZSprite> e: mImageCache.entrySet())
+						if (e.getValue().data==((ZSpriteRepeater)ser).sprite.data){
 							map.put("image",e.getKey());
 							break;
 						}
@@ -190,6 +202,8 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 						resizeSelectedCuboid(false, false, mManager.isKeyPressed(KeyEvent.VK_Z), shift, ctrl);
 					else if (mLevelPrimitives.get(mCurrentSelection) instanceof ZSprite)
 						((ZSprite)mLevelPrimitives.get(mCurrentSelection)).z += shift?1:-1;
+					else if (mLevelPrimitives.get(mCurrentSelection) instanceof ZSpriteRepeater)
+						((ZSpriteRepeater)mLevelPrimitives.get(mCurrentSelection)).sprite.z += shift?1:-1;
 				}
 				//extended modifiers
 				if (mManager.isKeyPressedOnce(KeyEvent.VK_M))
@@ -244,6 +258,10 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 						ZSprite zs = (ZSprite)curSel;
 						mScene.setFloaterText("cursel1",zs.x+":"+zs.y+":"+zs.z,0xffddddcc).y=mZBufferYStart+515;
 						mScene.setFloaterText("cursel2",(zs.x+zs.w)+":"+(zs.y+zs.h)+":",0xffddddcc).y=mZBufferYStart+530;
+					} else if (curSel instanceof ZSpriteRepeater){
+						ZSpriteRepeater r = ((ZSpriteRepeater)curSel);
+						mScene.setFloaterText("cursel1",r.sprite.x+":"+r.sprite.y+":"+r.sprite.z,0xffddddcc).y=mZBufferYStart+515;
+						mScene.setFloaterText("cursel2",(r.sprite.x+r.sprite.w*r.repx)+":"+(r.sprite.y+r.sprite.h*r.repy)+":",0xffddddcc).y=mZBufferYStart+530;
 					}
 				}
 				mScene.setFloaterText("mousez:",rx+"/"+ry+"/"+z,0xffddddcc).y=mZBufferYStart+500;
@@ -397,6 +415,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	}
 	public void addBasicElementAtCursor(){
 		String element= (String) JOptionPane.showInputDialog(null,"Element:","",JOptionPane.PLAIN_MESSAGE,null,mBasicElements.keySet().toArray(),mBasicElements.keySet().iterator().next());
+		if (element == null || element.isEmpty()) return;
 		String ser = mBasicElements.get(element);
 		if (ser==null) return;
 		ScenePrimitive sp= addSerializedObject((Map<String, Object>)((new JSONReader()).read(ser)));
@@ -427,6 +446,14 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	public void resizeSelectedCuboid(boolean resizeX, boolean resizeY, boolean resizeZ, boolean enlarge, boolean minimum){
 		if (mCurrentSelection==-1) return;
 		ScenePrimitive sp = mLevelPrimitives.get(mCurrentSelection);
+		if (sp instanceof ZSpriteRepeater){
+			ZSpriteRepeater r = (ZSpriteRepeater)sp;
+			if (resizeX && enlarge) r.repx++;
+			else if (resizeX && !enlarge) r.repx--;
+			else if (resizeY && enlarge) r.repy++;
+			else if (resizeY && !enlarge) r.repy--;
+		}
+
 		if (!(sp instanceof Cuboid)) return;
 		Cuboid c = (Cuboid)sp;
 		int inc=enlarge?1:-1;

@@ -147,6 +147,12 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 		Vector3i center=centerI();
 		move(x-center.x,y-center.y,z-center.z);
 	}
+	public Vector3i cornerLTF(){
+		return new Vector3i(minx, miny, minz);
+	}
+	public Vector3i cornerRBN(){
+		return new Vector3i(maxx, maxy, maxz);
+	}
 
 	public int zAt(int wx, int wy){
 		if (!containsPoint(wx, wy)) return -1;

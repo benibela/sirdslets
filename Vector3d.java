@@ -23,6 +23,9 @@ public class Vector3d implements JSONSerializable{
 		y=old.y;
 		z=old.z;
 	}
+	public Vector3d(final ArrayList<Number> v){
+		jsonDeserialize(v);
+	}
 	public Vector3d abs(){
 		if (x<0) x=-x;
 		if (y<0) y=-y;

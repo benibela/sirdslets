@@ -1,5 +1,4 @@
 
-import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
@@ -127,6 +126,12 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		this.x=x-w/2;
 		this.y=y-h/2;
 		this.z=z;
+	}
+	public Vector3i cornerLTF(){
+		return new Vector3i(x, y, z);
+	}
+	public Vector3i cornerRBN(){
+		return new Vector3i(x+w, y+h, ZDraw.MAXZ);
 	}
 
 	public int zAt(int wx, int wy){

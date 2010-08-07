@@ -33,7 +33,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected int mShootTimeout, mShootCount;
 	//World
 	protected int firstLevel = 1;
-	public int mLastLevel = 6;
+	public int mLastLevel = 7;
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
@@ -76,6 +76,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 			if (!mImageCache.containsKey(imageName))
 				mImageCache.put(imageName, mScene.createZSprite("flighter/"+imageName));
 			sp=((ZSprite)mImageCache.get(imageName)).fastClone();
+		} else if ("ZSpriteRepeater".equals(type)) {
+			String imageName=(String)m.get("image");
+			if (!mImageCache.containsKey(imageName))
+				mImageCache.put(imageName, mScene.createZSprite("flighter/"+imageName));
+			sp=new ZSpriteRepeater(((ZSprite)mImageCache.get(imageName)).fastClone());
 		} else throw new IllegalArgumentException("invalid level object");
 		sp.jsonDeserialize(m);
 		mLevelPrimitives.add(sp);
@@ -225,7 +230,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		for (PrimitiveModifier pm: mSpecialModifier){
 			PrimitiveMarker m=((PrimitiveMarker)pm);
-			if ("gravitron".equals(m.properties.get("subtype"))){
+			Object subtype = m.properties.get("subtype");
+			if ("gravitron".equals(subtype)){
 				Vector3d dir = mShipP.clone().sub(m.prim.centerI());
 				dir.z = 0; 
 				double distance = dir.length();
@@ -235,6 +241,18 @@ public class SIRDSFlighter implements SIRDSlet	{
 				double mulfac = ((Number)m.properties.get("mulfactor") ).doubleValue();
 
 				mShipA.sub(dir.multiply(mulfac * Math.pow(distance, - expfac - 1))); //-1 to normalize dir
+			} else if ("accelerator".equals(subtype)) {
+				ArrayList<Number> distances = (ArrayList<Number>)m.properties.get("distances");
+				Vector3i dist;
+				if (distances != null) dist = new Vector3i(distances);
+				else dist = m.prim.cornerRBN().sub(m.prim.centerI());
+				ArrayList<Number> acc = (ArrayList<Number>)m.properties.get("acceleration");
+				if (acc == null) continue;
+				Vector3i center = m.prim.centerI();
+				if (Math.abs(center.x - mShipP.x) > dist.x) continue;
+				if (Math.abs(center.y - mShipP.y) > dist.y) continue;
+				if (Math.abs(center.z - mShipP.z) > dist.z) continue;
+				mShipA.add(new Vector3d(acc));
 			}
 		}
 
@@ -340,6 +358,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 				coll|=((Cuboid)sp).intersect(mShip,0,0,true);
 			else if (sp instanceof ZSprite)
 				coll|=mShip.intersect((ZSprite)sp,0,0,true);
+			else if (sp instanceof ZSpriteRepeater)
+				coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);
 		if (coll) {
 			mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
 			updateLife();

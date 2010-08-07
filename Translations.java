@@ -67,7 +67,7 @@ public class Translations {
 			"left/right\tslow scroll\n" +
 			"page up/down\tfast scroll\n" +
 			"a/s\tcursor on z-axis\n" +
-			"c/i/b\tcreate element\n" +
+			"c/i/b\tcreate cuboid/image/element\n" +
 			"d/r\tduplicate/remove\n" +
 			"[ctrl]+[shift]+x/y/z\tedit cuboid\n" +
 			"[ctrl]+m\tedit mover/modifier";
@@ -85,4 +85,4 @@ public class Translations {
 			"mouse\tdraw/select height";
 	}
 }
-}
+

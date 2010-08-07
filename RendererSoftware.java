@@ -60,11 +60,7 @@ public class RendererSoftware implements SIRDSRenderer{
 
 
 	private void renderPrimitive(ScenePrimitive p){
-		if (p instanceof Cuboid){
-			((Cuboid)p).drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
-		} else if (p instanceof ZSprite) {
-			((ZSprite)p).drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
-		} else throw new IllegalArgumentException("invalid primitive");
+		p.drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
 	}
 	public void renderFrame(){
 		boolean drawSIRDS=mDrawSIRDS && sis1!=null && sis2!=null;
