@@ -358,8 +358,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 				coll|=((Cuboid)sp).intersect(mShip,0,0,true);
 			else if (sp instanceof ZSprite)
 				coll|=mShip.intersect((ZSprite)sp,0,0,true);
-			else if (sp instanceof ZSpriteRepeater)
-				coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);
+			//else if (sp instanceof ZSpriteRepeater)
+			//	coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);	
 		if (coll) {
 			mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
 			updateLife();
