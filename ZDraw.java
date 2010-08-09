@@ -225,12 +225,57 @@ public class ZDraw extends IntArrayImage
 		for (int y=0; y<h; y++)
 		{
 			b = getLineIndex(y);
-			for (int x=0; x<w; x++)
+			for (int x=MAXZ; x<w; x++)
 			{
 				int v = data[b+x]*255 / MAXZ;
 				v = 0xff000000 | v | (v<<8) | (v<<16);
 				v ^= inv;
 				to[b+x] = v;
+			}
+		}
+	}
+
+	public void drawAnaglyph(int[] to, boolean invert)
+	{
+		if (invert) {
+			for (int y=0; y<h; y++)
+			{
+				int b = getLineIndex(y);
+				for (int x=0; x<w; x++)
+				{
+					int v = data[b+x]*255 / MAXZ;
+					to[b+x] = 0xff000000 | (v << 8) | v;
+				}
+				int l=b;
+				for (int x=MAXZ; x<w; x++)
+				{
+					int v = data[b+x]*255 / MAXZ;
+					v = (v << 16);
+					int n = b+x-data[b+x];
+				//	if (n<l) l = n;
+					for (int t = l; t <= n; t++) to[t] = to[t] | v;
+					l = n+1;
+				}
+			}
+		} else {
+			for (int y=0; y<h; y++)
+			{
+				int b = getLineIndex(y);
+				for (int x=0; x<w; x++)
+				{
+					int v = data[b+x]*255 / MAXZ;
+					to[b+x] = 0xff000000 | (v << 16);
+				}
+				int l=b;
+				for (int x=MAXZ; x<w; x++)
+				{
+					int v = data[b+x]*255 / MAXZ;
+					v = (v << 8) | v;
+					int n = b+x-data[b+x];
+				//	if (n<l) l = n;
+					for (int t = l; t <= n; t++) to[t] = to[t] | v;
+					l = n+1;
+				}
 			}
 		}
 	}

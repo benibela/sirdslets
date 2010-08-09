@@ -43,7 +43,7 @@ public class Translations_DE extends Translations{
 	public String closeMenu(){return "Menü schließen";}
 	public String start(){return "START";}
 
-	public String enterSwitches(){return "Enter\tWechsel zwischen Heightmap/SIRDS-Ansicht";}
+	public String enterSwitches(){return "Enter\tWechsel zwischen Heightmap/SIRDS/Anaglyph";}
 
 //module text
 	public String SIRDSFlighter(){return "SIRDS Flighter";}

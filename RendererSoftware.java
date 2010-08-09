@@ -12,7 +12,8 @@ public class RendererSoftware implements SIRDSRenderer{
 	private IntArrayImage mSIRDPixels;
 	private MemoryImageSource mSIRDImage;
 
-	private boolean mInvert, mRandomFlicker, mDrawSIRDS;
+	private boolean mInvert, mRandomFlicker;
+	int mDrawMode;
 
 	int sis1[];
 	int sis2[];
@@ -22,7 +23,7 @@ public class RendererSoftware implements SIRDSRenderer{
 	public void init(Component parent, SceneManager sceneManager){
 		mInvert=false;
 		mRandomFlicker=true;
-		mDrawSIRDS=true;
+		mDrawMode=1;
 
 		mScene=sceneManager;
 		mParent=parent;
@@ -51,11 +52,11 @@ public class RendererSoftware implements SIRDSRenderer{
 	public void setInversion(boolean invert){
 		mInvert=invert;
 	}
-	public void setDrawSIRDS(boolean drawSIRDS){
-		mDrawSIRDS=drawSIRDS;
+	public void setDrawMode(int drawMode){
+		mDrawMode=drawMode;
 	}
-	public boolean getDrawSIRDS(){
-		return mDrawSIRDS;
+	public int getDrawMode(){
+		return mDrawMode;
 	}
 
 
@@ -63,7 +64,7 @@ public class RendererSoftware implements SIRDSRenderer{
 		p.drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
 	}
 	public void renderFrame(){
-		boolean drawSIRDS=mDrawSIRDS && sis1!=null && sis2!=null;
+		boolean drawSIRDS=(mDrawMode == 1) && sis1!=null && sis2!=null;
 		mZBuffer.clear();
 
 		for (ScenePrimitive prim: mScene.primitives)
@@ -72,8 +73,8 @@ public class RendererSoftware implements SIRDSRenderer{
 			renderPrimitive(sprite.getValue()); 
 
 		if (!drawSIRDS){
-			//heightmap mode
-			mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert);
+			if (mDrawMode == 0) mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert); 			//heightmap mode
+			else mZBuffer.drawAnaglyph(mSIRDPixels.data, mInvert);
 		} else {
 			if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, sis2, mRandomFlicker, mInvert);
 			else mZBuffer.DrawSIRD(mSIRDPixels.data, sis1, mRandomFlicker, mInvert);

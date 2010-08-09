@@ -33,7 +33,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected int mShootTimeout, mShootCount;
 	//World
 	protected int firstLevel = 1;
-	public int mLastLevel = 7;
+	public int mLastLevel = 9; //last existing level (don't forget to recompile!)
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;

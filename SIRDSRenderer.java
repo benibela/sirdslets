@@ -9,8 +9,8 @@ public interface SIRDSRenderer{
 	void setSISData(int f1[], int f2[], int w, int h);
 	void setRandomMode(boolean randomFlicker);
 	void setInversion(boolean invert);
-	void setDrawSIRDS(boolean drawSIRDS);
-	boolean getDrawSIRDS();
+	void setDrawMode(int drawMode); //0: height map 1: sirds 2: anaglyph
+	int getDrawMode();
 
 	void renderFrame();
 	void paint(Graphics g);
