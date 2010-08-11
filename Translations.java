@@ -53,7 +53,7 @@ public class Translations {
 	}
 	public String SIRDSFlighterKeys(){
 		return "Arrows\tMovement in the xy-plane\n" +
-			"Shift/Control\tMovement along the z-axis (near/far)\n" +
+			"Shift/Control/a/s/x/y/z\tMovement along the z-axis (near/far)\n" +
 			"Space\tFire";
 	}
 

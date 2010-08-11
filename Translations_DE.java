@@ -53,7 +53,7 @@ public class Translations_DE extends Translations{
 	}
 	public String SIRDSFlighterKeys(){
 		return "Pfeiltasten\tBewegung in der xy-Ebene\n" +
-			"Shift/Control/a/s\tBewegung entlang der z-Achse (nah/fern)\n" +
+			"Shift/Control/a/s/x/y/z\tBewegung entlang der z-Achse (nah/fern)\n" +
 			"Leertaste\tSchieße";
 	}
 

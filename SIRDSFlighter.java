@@ -14,6 +14,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 	public int KEY_SHIP_ACC_DOWN=KeyEvent.VK_DOWN;
 	public int KEY_SHIP_ACC_ASCEND=KeyEvent.VK_SHIFT;
 	public int KEY_SHIP_ACC_DESCEND=KeyEvent.VK_CONTROL;
+	public int KEY_SHIP_ACC_ASCEND2=KeyEvent.VK_A;
+	public int KEY_SHIP_ACC_DESCEND2=KeyEvent.VK_S;
+	public int KEY_SHIP_ACC_ASCEND3=KeyEvent.VK_X;
+	public int KEY_SHIP_ACC_DESCEND3=KeyEvent.VK_Y;
+	public int KEY_SHIP_ACC_DESCEND4=KeyEvent.VK_Z;
 	public int KEY_SHIP_FIRE=KeyEvent.VK_SPACE;
 
 
@@ -23,6 +28,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected SceneManager mScene;
 	protected int mZBufferYStart;
 	protected final int mZBufferH=500;
+	protected boolean mInitialWait;
 	//Ship
 	protected ZSprite mShip;
 	private Vector3d mShipV,mShipP;
@@ -32,7 +38,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
 	//World
-	protected int firstLevel = 1;
+	protected int firstLevel = 0;
 	public int mLastLevel = 9; //last existing level (don't forget to recompile!)
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
@@ -57,6 +63,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShootTimeout = 450;
 		mShootCount = 0;
 
+		mInitialWait = true;
 
 		mSoundFire = mManager.getAudioClip("flighter/lasersword_iespana.wav"); //all free sounds \/
 		mSoundCollision[0] = mManager.getAudioClip("flighter/collision0_pacdv.wav");
@@ -222,8 +229,10 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShipA.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
 		mShipA.y-=mManager.isKeyPressed(KEY_SHIP_ACC_UP)?acceleration:0;
 		mShipA.y+=mManager.isKeyPressed(KEY_SHIP_ACC_DOWN)?acceleration:0;
-		mShipA.z-=mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)?0.25:0;
-		mShipA.z+=mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)?0.25:0;
+		mShipA.z-=(mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND3)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND4))?0.25:0;
+		mShipA.z+=(mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND3))?0.25:0;
+
+		if (mInitialWait && mShipA.length()>0) mInitialWait = false;
 
 		if (mManager.isKeyPressed(KEY_SHIP_FIRE) || mManager.isKeyPressedChanged(KEY_SHIP_FIRE))
 			shipFire();
@@ -371,7 +380,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 
 		//------------------scroll level--------------------
-		mLevelScroll-=4;
+		if (!mInitialWait) mLevelScroll-=4;
 		if (mShip.x > mLevelLength + 50) {
 			mLevelScroll-=10;
 			mShipP.x+=10;
