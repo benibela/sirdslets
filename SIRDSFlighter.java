@@ -305,6 +305,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			c.drawTo(mZBuffer,mShipData.levelScroll,mZBufferYStart);
 	}*/
 	public void calculateFrame(long time){
+		long timeDelta = time - mCurTime;
 		mCurTime=time;
 
 
@@ -316,7 +317,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 				mTimeWarpLastClockFlicker=mCurTime;
 			}
 
+			mScene.calculateFrame((int)(-timeDelta));
+
 			if (mCurTime - mLastDied > 1000) {
+				mScene.calculateFrame((int)(-timeDelta));
+
 				mShipData.assign(mShipHistory.get(mShipHistoryPos));
 				mShip.x=(int)Math.round(mShipData.p.x-mShip.w/2);
 				mShip.y=(int)Math.round(mShipData.p.y-mShip.h/2);
