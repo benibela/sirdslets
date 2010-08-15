@@ -73,6 +73,22 @@ public class Translations_DE extends Translations{
 			"[ctrl]+m\tBewegungspfade/modifizierer setzen";
 	}
 
+	public String SIRDSFlighterVeryEasy(){
+		return "sehr einfach";
+	}
+	public String SIRDSFlighterEasy(){
+		return "einfach";
+	}
+	public String SIRDSFlighterNormal(){
+		return "normal";
+	}
+	public String SIRDSFlighterHard(){
+		return "schwer";
+	}
+	public String SIRDSFlighterImpossible(){
+		return "unmöglich";
+	}
+
 	public String AbSIRDS(){
 		return "SIRDS Malprogramm";
 	}

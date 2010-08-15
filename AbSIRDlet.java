@@ -39,7 +39,7 @@ public class AbSIRDlet implements SIRDSlet
 		}
 	}
 	
-	public void start(Object manager){
+	public void start(Object manager, int option){
 	
 		mDrawRadius = 10;
 		mCurrentZ = 10;
@@ -158,5 +158,11 @@ public class AbSIRDlet implements SIRDSlet
 	}
 	public String getKeys(){
 		return  Translations.getInstance().AbSIRDSKeys();
+	}
+	public String[] getPossibleOptions(){
+		return new String[0];
+	}
+	public int getDefaultOption(){
+		return 0;
 	}
 }

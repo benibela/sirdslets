@@ -14,6 +14,7 @@ import javax.imageio.*;
 import java.net.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.ButtonGroup;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -22,11 +23,13 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JRootPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
-import sun.awt.VerticalBagLayout;
+import javax.swing.border.Border;
+
 
 class TimedFloater extends Floater{
 	int timetolive;  //time until removal in ms
@@ -45,6 +48,8 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	private SIRDSAppletManager self; //=this, but also usable in anonymous sub classes
 	
 	private SIRDSlet curSIRDSlet=null, selectedSIRDSlet=null;
+	private int mSelectedOption = 0;
+	private ArrayList<JRadioButton> mOptions = new ArrayList<JRadioButton>();
 	private ArrayList<SIRDSlet> sirdslets=new ArrayList<SIRDSlet>();
 
 	private boolean mPauseScene=true;
@@ -155,6 +160,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		GridBagConstraints gbc = new GridBagConstraints();
 
 		startPanel=new JPanel();
+		startPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(0, 0, 180), 3));
 		startPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		startPanel.setLayout(new GridBagLayout());
 		startPanel.setBackground(Color.BLUE);
@@ -216,6 +222,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		
 
 		optionPanel=new JPanel();
+		optionPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(0,190,190), 3));
 		Color optionPanelLabelColor = Color.BLACK;
 		optionPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		GridLayout lay = new GridLayout(0,2);
@@ -337,7 +344,9 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			}});
 		optionPanel.add(close);
 
+
 		mSirdletStartPanel = new JPanel();
+		mSirdletStartPanel.setBorder(javax.swing.BorderFactory.createLineBorder(Color.ORANGE, 3));
 		mSirdletStartPanel.setBackground(Color.YELLOW);
 
 		mSirdsletDescription = new JLabel("desc");
@@ -358,6 +367,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		mSirdletStartPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		mSirdletStartPanel.setLayout(new GridBagLayout());
 		gbc = new GridBagConstraints();
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
 		gbc.gridy = 0;
 		gbc.insets.top = 3;
 		gbc.insets.bottom = 3;
@@ -368,8 +378,9 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		gbc.weightx = 0.7;
 		mSirdletStartPanel.add(mSirdsletKeys,gbc);
 		gbc.fill = GridBagConstraints.NONE;
-		gbc.gridy = 2;
+		gbc.gridy = 3;
 		mSirdletStartPanel.add(mSirdsletStart,gbc);
+
 
 		mSirdletStartPanel.setVisible(false);
 
@@ -461,6 +472,47 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		 while (m.find()) max = Math.max(max, m.group().length());
 		 mSirdsletKeys.setTabSize(max/2+5);
 		 mSirdsletKeys.setText(keys); //there is a swing bug that setting the tab size doesn't update the size
+
+		 String [] options = selectedSIRDSlet.getPossibleOptions();
+		 GridBagConstraints gbc = new GridBagConstraints();
+		 gbc.gridy = 2;
+		 gbc.gridx = 0;
+		 gbc.weightx = 0.5;
+		 for (JRadioButton cb: mOptions)
+			 mSirdletStartPanel.remove(cb);
+		 mOptions.clear();
+		 ButtonGroup b = new ButtonGroup();
+		 int id = 0;
+		 for (String s: options) {
+			JRadioButton cb = new JRadioButton(s);
+			cb.setOpaque(false);
+			final int wtfid = id;
+			if (id == selectedSIRDSlet.getDefaultOption())
+				 cb.setSelected(true);
+			cb.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					mSelectedOption = wtfid;
+				}
+			});
+			b.add(cb);
+			mOptions.add(cb);
+			mSirdletStartPanel.add(cb, gbc);
+			gbc.gridx += 1;
+			id += 1;
+		 }
+		/*gbc.gridwidth=1;
+		gbc.gridy = 2;
+		gbc.gridx = 0;
+		mSirdletStartPanel.add(new JCheckBox("very easy"), gbc);
+		gbc.gridx = 1;
+		mSirdletStartPanel.add(new JCheckBox("easy"), gbc);
+		gbc.gridx = 2;
+		mSirdletStartPanel.add(new JCheckBox("normal"), gbc);
+		gbc.gridx = 3;
+		mSirdletStartPanel.add(new JCheckBox("hard"), gbc);
+		gbc.gridx = 4;
+		mSirdletStartPanel.add(new JCheckBox("impossible"), gbc);*/
+
 		 mSirdletStartPanel.doLayout();
 		 animationDoLayout();
 		 animatedSetVisible(mSirdletStartPanel, true);
@@ -486,7 +538,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		setShowFloaterCursor(false);
 		setAllowSaving(false);
 		setAllowSaving(false);
-		let.start(this);
+		let.start(this, mSelectedOption);
 		curSIRDSlet=let;
 		resumeRendering();
 	}

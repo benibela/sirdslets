@@ -21,7 +21,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 	public int KEY_SHIP_ACC_DESCEND4=KeyEvent.VK_Z;
 	public int KEY_SHIP_FIRE=KeyEvent.VK_SPACE;
 
-
+	private final static int DIFF_VERY_EASY = 0;
+	private final static int DIFF_EASY = 1;
+	private final static int DIFF_NORMAL = 2;
+	private final static int DIFF_HARD = 3;
+	private final static int DIFF_IMPOSSIBLE = 4;
 	
 	//technical things
 	protected SIRDSAppletManager mManager;
@@ -29,17 +33,19 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected int mZBufferYStart;
 	protected final int mZBufferH=500;
 	protected boolean mInitialWait;
+	protected Random mRandom;
 	//Ship
-	protected ZSprite mShip;
+	protected ZSprite mShip, mBaseShip;
 	private Vector3d mShipV,mShipP;
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
-	private int mInitialLife, mCurrentLife;
+	private int mInitialLife, mCurrentLife, mCurrentLifeTotal; //mCurrentLift = mCurrentLifeTotal - MinimalRequiredLife;
 	protected ArrayList<Cuboid> mShoots;
 	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
 	//World
-	protected int firstLevel = 0;
-	public int mLastLevel = 9; //last existing level (don't forget to recompile!)
+	protected final static int firstLevel = 0;
+	protected int mDifficulty = DIFF_NORMAL;
+	public final static int mLastLevel = 9; //last existing level (don't forget to recompile!)
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
@@ -54,7 +60,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private AudioClip mSoundLargeExplosion;
 
 
-	public void start(Object manager){
+	public void start(Object manager, int option){
 		mManager=(SIRDSAppletManager)manager;
 		mScene=mManager.getSceneManager();
 
@@ -72,7 +78,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mSoundSmallExplosion[1] = mManager.getAudioClip("flighter/smallexplosion1.wav"); //"
 		mSoundLargeExplosion = mManager.getAudioClip("flighter/vehicleexplosion_diode111.wav");
 
-		startLevel(firstLevel);
+		mBaseShip=mScene.createZSprite("flighter/ship.png");
+		mDifficulty = option;
+
+		mRandom = new Random();
+		
+		startLevel(option >= DIFF_HARD?firstLevel+1:firstLevel); //skip first level (training) with hard
 	}
 	protected ScenePrimitive addSerializedObject(Map<String, Object> m){
 		String type=(String)m.get("type");
@@ -115,6 +126,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mManager.suspendRendering();
 		mScene.removeFloater("zerror");
 		//reset ship position
+		mShip=mBaseShip.fastClone();
+		mShip.dataVisible = mShip.dataVisible.clone();
 		mShip=mScene.setZSprite("ship",mScene.createZSprite("flighter/ship.png"));
 		mInitialLife=0;
 		for (int y=0;y<mShip.h;y++){
@@ -123,7 +136,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 				if (mShip.dataVisible[b+x]) mInitialLife+=1;
 		}
 		mCurrentLife=mInitialLife;
-		updateLife();
+		mCurrentLifeTotal=mInitialLife;
+		updateLifeProgressBar();
 		
 		mShip.x=300-mShip.w/2;
 		mShip.y=mZBufferH/2-mShip.h/2;
@@ -368,13 +382,16 @@ public class SIRDSFlighter implements SIRDSlet	{
 			else if (sp instanceof ZSprite)
 				coll|=mShip.intersect((ZSprite)sp,0,0,true);
 			//else if (sp instanceof ZSpriteRepeater)
-			//	coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);	
+			//	coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);
+		int life = mCurrentLife;
 		if (coll) {
 			mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
-			updateLife();
+			updateLifeDamaging();
 			if (mCurrentLife<=0) return; //game end
 		}
-
+		updateLifeHealing();
+		if (life != mCurrentLife)
+			updateLifeProgressBar();
 
 		if (mShip.x > mLevelLength + 100 + mLevelEnd.w) startLevel(mLevel+1);
 
@@ -388,9 +405,88 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mScene.setCameraPosition(-mLevelScroll, -(mScene.height-mZBufferH)/2, 0);
 	}
 	
-	private void updateLife(){
+	private void updateLifeDamaging(){
 		if (mCurrentLife<=0) return;
 
+		mCurrentLife=0;
+		for (int y=0;y<mShip.h;y++){
+			int b=mShip.getLineIndex(y);
+			for (int x=0;x<mShip.w;x++)
+				if (mShip.dataVisible[b+x]) mCurrentLife+=1;
+		}
+		mCurrentLifeTotal = mCurrentLife;
+		mCurrentLife=mCurrentLife-mInitialLife/2;
+
+
+		if (mCurrentLife<=0) {
+			mSoundLargeExplosion.play();
+			
+			//You died now
+			mScene.clear();
+
+			ZSprite mes=mScene.setZSprite("mes",new ZSprite());
+			mes.setToString("YOU\nDIED",mManager.getGraphics().getFontMetrics(
+			//new Font("Arial Black",Font.BOLD,100)),0,15);
+			new Font("Arial Black",Font.BOLD,150)),0,15);
+		//mLevelEnd.rotate90R();
+			mes.x=(mScene.width-mes.w)/2;
+			mes.y=(mScene.height-mes.h)/2;
+
+			mLastDied = mCurTime;
+			updateLifeProgressBar();
+		}
+	}
+
+	private void updateLifeHealing(){
+		if (mCurrentLifeTotal >= mInitialLife || mCurrentLife <= 0) return;
+
+		int healablePixels = 0;
+		for (int y=1;y<mShip.h-1;y++){
+			int b=mShip.getLineIndex(y);
+			for (int x=1;x<mShip.w-1;x++)
+				if (!mShip.dataVisible[b+x] && mBaseShip.dataVisible[b+x] &&
+				    (mShip.dataVisible[b+x-1] || mShip.dataVisible[b+x+1] ||
+				    mShip.dataVisible[mShip.getLineIndex(y-1)+x] || mShip.dataVisible[mShip.getLineIndex(y+1)+x])) 
+					healablePixels+=1;
+		}
+
+		if (healablePixels <= 0) return;
+
+
+		//generate a list of pixel to heal (every healable pixel is identified with a number between 0 and healablePixels)
+		int healingSpeed = 5;
+		if (healingSpeed > healablePixels) healingSpeed = healablePixels;
+		ArrayList<Integer> pixelsToHeal = new ArrayList<Integer>(healingSpeed);
+		for (int i=0;i<healingSpeed;i++) pixelsToHeal.add(mRandom.nextInt(healablePixels - i));
+
+		Collections.sort(pixelsToHeal);
+
+		//replace the pixel indices with the distance between the pixel indices
+		for (int i=healingSpeed-1;i>0;i--) pixelsToHeal.set(i, pixelsToHeal.get(i)-pixelsToHeal.get(i-1));
+
+		int pixelToHealIndex = 0;
+		int pixelToHeal = pixelsToHeal.get(0);
+
+		//then jump over the given distance to the next pixel and heal that
+		for (int y=1;y<mShip.h-1;y++){
+			int b=mShip.getLineIndex(y);
+			for (int x=1;x<mShip.w-1;x++)
+				if (!mShip.dataVisible[b+x] && mBaseShip.dataVisible[b+x] &&
+				    (mShip.dataVisible[b+x-1] || mShip.dataVisible[b+x+1] ||
+				    mShip.dataVisible[mShip.getLineIndex(y-1)+x] || mShip.dataVisible[mShip.getLineIndex(y+1)+x])) {
+					if (pixelToHeal == 0) {
+						mShip.dataVisible[b+x] = true;
+						pixelToHealIndex++;
+						mCurrentLife++; //increment for every single pixel, because sometimes it doesn't find all (bug? or some narrow path)
+						mCurrentLifeTotal++;
+						if (pixelToHealIndex>=pixelsToHeal.size()) return;
+						else pixelToHeal = pixelsToHeal.get(pixelToHeal);
+					} else pixelToHeal--;
+				}
+		}
+	}
+
+	private void updateLifeProgressBar(){
 		Floater life=mScene.getFloater("life");
 		if (life==null) {
 			life=mScene.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
@@ -398,13 +494,6 @@ public class SIRDSFlighter implements SIRDSlet	{
 			life.y=5;
 			life.z=ZDraw.MAXZ;
 		}
-		mCurrentLife=0;
-		for (int y=0;y<mShip.h;y++){
-			int b=mShip.getLineIndex(y);
-			for (int x=0;x<mShip.w;x++)
-				if (mShip.dataVisible[b+x]) mCurrentLife+=1;
-		}
-		mCurrentLife=mCurrentLife-mInitialLife/2;
 
 		int padding=1;
 		int len=life.w-2*padding;
@@ -422,23 +511,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 				b+=life.stride;
 			}
 		}
-
-		if (mCurrentLife<=0) {
-			mSoundLargeExplosion.play();
-			
-			//You died now
-			mScene.clear();
-
-			ZSprite mes=mScene.setZSprite("mes",new ZSprite());
-			mes.setToString("YOU\nDIED",mManager.getGraphics().getFontMetrics(
-			//new Font("Arial Black",Font.BOLD,100)),0,15);
-			new Font("Arial Black",Font.BOLD,150)),0,15);
-		//mLevelEnd.rotate90R();
-			mes.x=(mScene.width-mes.w)/2;
-			mes.y=(mScene.height-mes.h)/2;
-
-			mLastDied = mCurTime;
-		}
+		
 	}
 
 	private void shipFire(){
@@ -470,6 +543,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 	public String getKeys(){
 		return Translations.getInstance().SIRDSFlighterKeys();
+	}
+	public String[] getPossibleOptions(){
+		return new String[]{Translations.getInstance().SIRDSFlighterVeryEasy(),Translations.getInstance().SIRDSFlighterEasy(),Translations.getInstance().SIRDSFlighterNormal(),Translations.getInstance().SIRDSFlighterHard(),Translations.getInstance().SIRDSFlighterImpossible()};
+	}
+	public int getDefaultOption(){
+		return 2;
 	}
 	
 }

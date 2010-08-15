@@ -73,6 +73,22 @@ public class Translations {
 			"[ctrl]+m\tedit mover/modifier";
 	}
 
+	public String SIRDSFlighterVeryEasy(){
+		return "very easy";
+	}
+	public String SIRDSFlighterEasy(){
+		return "easy";
+	}
+	public String SIRDSFlighterNormal(){
+		return "normal";
+	}
+	public String SIRDSFlighterHard(){
+		return "hard";
+	}
+	public String SIRDSFlighterImpossible(){
+		return "impossible";
+	}
+
 	public String AbSIRDS(){
 		return "SIRD Painter";
 	}
