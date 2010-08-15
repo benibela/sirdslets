@@ -225,6 +225,8 @@ public class ZDraw extends IntArrayImage
 		for (int y=0; y<h; y++)
 		{
 			b = getLineIndex(y);
+			for (int x=0; x<MAXZ; x++)
+				to[b+x] = 0xff000000;
 			for (int x=MAXZ; x<w; x++)
 			{
 				int v = data[b+x]*255 / MAXZ;

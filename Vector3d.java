@@ -107,7 +107,11 @@ public class Vector3d implements JSONSerializable{
 	public Vector3d clone(){
 		return new Vector3d(this);
 	}
-
+	public void assign(Vector3d v){
+		x = v.x;
+		y = v.y;
+		z = v.z;
+	}
 
 	public Object jsonSerialize() {
 		return new double[]{x,y,z};

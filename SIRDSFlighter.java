@@ -26,7 +26,26 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private final static int DIFF_NORMAL = 2;
 	private final static int DIFF_HARD = 3;
 	private final static int DIFF_IMPOSSIBLE = 4;
-	
+
+	protected static class ShipInformation{
+		public Vector3d v, p;
+		public int life;
+		public boolean[] damage;
+		public int levelScroll;
+		public void assign(ShipInformation shi){
+			if (v != null) v.assign(shi.v);
+			else v = new Vector3d(shi.v);
+			if (p != null) p.assign(shi.p);
+			else p = new Vector3d(shi.p);
+			life = shi.life;
+			if (damage != null && damage.length == shi.damage.length ) {
+				for (int i=0;i<damage.length;i++)
+					damage[i]=shi.damage[i];
+			} else damage = shi.damage.clone();
+			levelScroll = shi.levelScroll;
+		}
+	}
+
 	//technical things
 	protected SIRDSAppletManager mManager;
 	protected SceneManager mScene;
@@ -36,10 +55,16 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected Random mRandom;
 	//Ship
 	protected ZSprite mShip, mBaseShip;
-	private Vector3d mShipV,mShipP;
+	protected ShipInformation mShipData;
+	protected ArrayList<ShipInformation> mShipHistory;
+	protected int mShipHistoryPos;
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
-	private int mInitialLife, mCurrentLife, mCurrentLifeTotal, mMinimalRequiredLife; //mCurrentLift = mCurrentLifeTotal - MinimalRequiredLife;
+	private int mInitialLife,  mMinimalRequiredLife; 
 	private int mHealingSpeed, mTimeWarpPerLevel, mRemainingTimeWarps;
+	private int mShipHistoryTravelBackPos;
+	private long mTimeWarpLastClockFlicker = 0;
+	private boolean mTimeWarpActive;
+	private static final int mTimeWarpFrameCount = 25*3;
 	protected ArrayList<Cuboid> mShoots;
 	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
@@ -48,11 +73,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected int mDifficulty = DIFF_NORMAL;
 	public int mLastLevel = 9; //last existing level (don't forget to recompile!)
 	protected ZSprite mLevelEnd;
-	protected int mLevelScroll, mLevel, mLevelLength;
+	protected int mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
 	protected ArrayList<ArrayList<PrimitiveModifier>> mLevelModifier;
 	protected HashMap<String, ZSprite> mImageCache = new HashMap<String, ZSprite>();
 	private ArrayList<PrimitiveModifier> mSpecialModifier;
+	protected ArrayList<Floater> mClockSymbols;
 
 
 	private AudioClip mSoundFire;
@@ -90,6 +116,14 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mRandom = new Random();
 
 		setDifficulty(option);
+		mClockSymbols = new ArrayList<Floater>(mTimeWarpPerLevel);
+		for (int i=0;i<mTimeWarpPerLevel;i++){
+			Floater f = mScene.createFloater("flighter/clock.png");
+			f.x=7+25*i;
+			f.y=20;
+			f.z=ZDraw.MAXZ/2;
+			mClockSymbols.add(f);
+		}
 
 		startLevel(option >= DIFF_HARD?firstLevel+1:firstLevel); //skip first level (training) with hard
 	}
@@ -152,7 +186,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 				mTimeWarpPerLevel = 0;
 				break;
 			case DIFF_IMPOSSIBLE:
-				mMinimalRequiredLife = mInitialLife - 1;
+				mMinimalRequiredLife = mInitialLife * 95 / 100;
 				mHealingSpeed = 0;
 				mTimeWarpPerLevel = 0;
 				break;
@@ -161,15 +195,26 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 	protected void startLevel(int level){
 		if (level > mLastLevel) return;
-		mScene.clear();
+		setDifficulty(mDifficulty);
+		if (level == 6 && mDifficulty>=DIFF_NORMAL) mMinimalRequiredLife = mInitialLife*50/100; //UGLY hack: level 6 is not impossible to play if the game is too strict
 		mManager.suspendRendering();
+		mScene.clear();
 		mScene.removeFloater("zerror");
+		for (int i=0;i<mTimeWarpPerLevel;i++) {
+			mScene.setFloater("clock"+i, mClockSymbols.get(i));
+			mClockSymbols.get(i).visible = true;
+		}
 		//reset ship position
 		mShip=mBaseShip.fastClone();
 		mShip.dataVisible = mShip.dataVisible.clone();
 		mShip=mScene.setZSprite("ship",mScene.createZSprite("flighter/ship.png"));
-		mCurrentLife=mInitialLife - mMinimalRequiredLife;
-		mCurrentLifeTotal=mInitialLife;
+		mShipData = new ShipInformation();
+		mShipData.life=mInitialLife;
+		mShipData.damage = mShip.dataVisible;
+		mShipHistory = new ArrayList<ShipInformation>();
+		mShipHistoryPos = -1;
+		mTimeWarpActive = false;
+		
 		updateLifeProgressBar();
 		mRemainingTimeWarps = mTimeWarpPerLevel;
 	
@@ -177,8 +222,8 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShip.y=mZBufferH/2-mShip.h/2;
 		mShip.z=10;
 
-		mShipV=new Vector3d();
-		mShipP=new Vector3d(mShip.x+mShip.w/2,mShip.y+mShip.h/2,mShip.z);
+		mShipData.v=new Vector3d();
+		mShipData.p=new Vector3d(mShip.x+mShip.w/2,mShip.y+mShip.h/2,mShip.z);
 		
 		
 		try{
@@ -231,7 +276,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mLevelEnd.x=mLevelLength+50;
 		mLevelEnd.y=mZBufferYStart+(mZBufferH-mLevelEnd.h)/2;
 		
-		mLevelScroll=0;
+		mShipData.levelScroll=0;
 		mLevel=level;
 
 		mShoots=new ArrayList<Cuboid>();
@@ -257,17 +302,61 @@ public class SIRDSFlighter implements SIRDSlet	{
 				mZBuffer.data[b+x]=newZ;
 		}
 		for (Cuboid c: mLevelCuboids)	
-			c.drawTo(mZBuffer,mLevelScroll,mZBufferYStart);
+			c.drawTo(mZBuffer,mShipData.levelScroll,mZBufferYStart);
 	}*/
 	public void calculateFrame(long time){
 		mCurTime=time;
 
-		if (mCurrentLife<=0){
+
+		if (mTimeWarpActive)
+		{
+			if (mCurTime - mTimeWarpLastClockFlicker > 300){
+				Floater clock = mClockSymbols.get(mRemainingTimeWarps);
+				if (clock!=null) clock.visible = !clock.visible ;
+				mTimeWarpLastClockFlicker=mCurTime;
+			}
+
+			if (mCurTime - mLastDied > 1000) {
+				mShipData.assign(mShipHistory.get(mShipHistoryPos));
+				mShip.x=(int)Math.round(mShipData.p.x-mShip.w/2);
+				mShip.y=(int)Math.round(mShipData.p.y-mShip.h/2);
+				mShip.z=(int)Math.round(mShipData.p.z);
+
+				mShipHistoryPos--;
+				if (mShipHistoryPos<0) mShipHistoryPos=mShipHistory.size()-1;
+				if (mShipHistoryTravelBackPos==mShipHistoryPos||mShipHistoryTravelBackPos<0) {
+					mShipHistoryPos=-1;
+					mShipHistory.clear();
+					mTimeWarpActive=false;
+					mScene.removeFloater("clock"+mRemainingTimeWarps);
+				}
+				updateLifeProgressBar();
+				mScene.setCameraPosition(-mShipData.levelScroll, -(mScene.height-mZBufferH)/2, 0);
+			}
+			return;
+		}
+
+		if (mShipData.life<mMinimalRequiredLife && mRemainingTimeWarps > 0) {
+			mRemainingTimeWarps--;			
+			mShipHistoryTravelBackPos=mShipHistoryPos;
+			mTimeWarpActive=true;
+			return;
+		}
+
+		if (mShipData.life<mMinimalRequiredLife){
 			//DEAD
 			if (mManager.isKeyPressedOnce(KEY_SHIP_FIRE)
 			    && mCurTime - mLastDied >= 2000)
 				startLevel(mLevel);
 			return;
+		}
+
+		if (mRemainingTimeWarps > 0) {
+			if (mShipHistory.size() < mTimeWarpFrameCount) {
+				mShipHistory.add(new ShipInformation());
+				mShipHistoryPos = mShipHistoryPos + 1;
+			} else mShipHistoryPos = (mShipHistoryPos+1) % mShipHistory.size();
+			mShipHistory.get(mShipHistoryPos).assign(mShipData);
 		}
 
 		//---------------------keyinput------------------------
@@ -289,7 +378,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			PrimitiveMarker m=((PrimitiveMarker)pm);
 			Object subtype = m.properties.get("subtype");
 			if ("gravitron".equals(subtype)){
-				Vector3d dir = mShipP.clone().sub(m.prim.centerI());
+				Vector3d dir = mShipData.p.clone().sub(m.prim.centerI());
 				dir.z = 0; 
 				double distance = dir.length();
 				if (distance*distance > 500*500 + 500*500)
@@ -306,63 +395,63 @@ public class SIRDSFlighter implements SIRDSlet	{
 				ArrayList<Number> acc = (ArrayList<Number>)m.properties.get("acceleration");
 				if (acc == null) continue;
 				Vector3i center = m.prim.centerI();
-				if (Math.abs(center.x - mShipP.x) > dist.x) continue;
-				if (Math.abs(center.y - mShipP.y) > dist.y) continue;
-				if (Math.abs(center.z - mShipP.z) > dist.z) continue;
+				if (Math.abs(center.x - mShipData.p.x) > dist.x) continue;
+				if (Math.abs(center.y - mShipData.p.y) > dist.y) continue;
+				if (Math.abs(center.z - mShipData.p.z) > dist.z) continue;
 				mShipA.add(new Vector3d(acc));
 			}
 		}
 
 		//-----------------move user ship----------------------
-		mShipV.add(mShipA);
-		/*if (mShipV.x>100) mShipV.x=100;
-		if (mShipV.y>60) mShipV.y=60;
-		if (mShipV.z>1.5) mShipV.z=1.5;
-		if (mShipV.x<-60) mShipV.x=-60;
-		if (mShipV.y<-60) mShipV.y=-60;
-		if (mShipV.z<-1) mShipV.z=-1;*/
-		/*mShipV.add(mShipV.clone().abs().add(1).multiply(mShipV).multiply(-0.01));//slowing down
-		if (mShipA.x==0) mShipV.x-=0.1*mShipV.x; //fast slowdown
-		if (mShipA.y==0) mShipV.y-=0.1*mShipV.y; //fast slowdown
-		if (mShipA.z==0) mShipV.z-=0.1*mShipV.z; //fast slowdown*/
-		mShipV.multiply(0.9);
-		mShipV.z = mShipV.z * 0.9;
+		mShipData.v.add(mShipA);
+		/*if (mShipData.v.x>100) mShipData.v.x=100;
+		if (mShipData.v.y>60) mShipData.v.y=60;
+		if (mShipData.v.z>1.5) mShipData.v.z=1.5;
+		if (mShipData.v.x<-60) mShipData.v.x=-60;
+		if (mShipData.v.y<-60) mShipData.v.y=-60;
+		if (mShipData.v.z<-1) mShipData.v.z=-1;*/
+		/*mShipData.v.add(mShipData.v.clone().abs().add(1).multiply(mShipData.v).multiply(-0.01));//slowing down
+		if (mShipA.x==0) mShipData.v.x-=0.1*mShipData.v.x; //fast slowdown
+		if (mShipA.y==0) mShipData.v.y-=0.1*mShipData.v.y; //fast slowdown
+		if (mShipA.z==0) mShipData.v.z-=0.1*mShipData.v.z; //fast slowdown*/
+		mShipData.v.multiply(0.9);
+		mShipData.v.z = mShipData.v.z * 0.9;
 
-		//mShipP.x+=1;
-		mShipP.add(mShipV);
-		/*if (mShipP.x+mShip.w>mScene.width) {
-			mShipP.x=mScene.height-mShip.w;
-			mShipV.x=-0.01;
+		//mShipData.p.x+=1;
+		mShipData.p.add(mShipData.v);
+		/*if (mShipData.p.x+mShip.w>mScene.width) {
+			mShipData.p.x=mScene.height-mShip.w;
+			mShipData.v.x=-0.01;
 		}
 		 * */
-		if (mShipP.y+mShip.h/2>mZBufferH) {
-			mShipP.y=mZBufferH-mShip.h/2;
-			if (mShipV.y>-0.01) mShipV.y=-0.01;
+		if (mShipData.p.y+mShip.h/2>mZBufferH) {
+			mShipData.p.y=mZBufferH-mShip.h/2;
+			if (mShipData.v.y>-0.01) mShipData.v.y=-0.01;
 		}
-		if (mShipP.z>MAXFLYZ) {	
-			mShipP.z=MAXFLYZ;
-			if (mShipV.z>-0.01) mShipV.z=-0.01;
+		if (mShipData.p.z>MAXFLYZ) {
+			mShipData.p.z=MAXFLYZ;
+			if (mShipData.v.z>-0.01) mShipData.v.z=-0.01;
 		}
-		if (mShipP.x< -mLevelScroll+ZDraw.SIRDW+mShip.w/2) { //there are maxz unreachable pixel at the left screen side
-			mShipP.x=-mLevelScroll+ZDraw.SIRDW+mShip.w/2;
-			if (mShipV.x<0.01) mShipV.x=0.01;
+		if (mShipData.p.x< -mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2) { //there are maxz unreachable pixel at the left screen side
+			mShipData.p.x=-mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2;
+			if (mShipData.v.x<0.01) mShipData.v.x=0.01;
 		}
-		if (mShipP.x> -mLevelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
-			mLevelScroll = (int)(mScene.width - mShipP.x - mShip.w/2);
+		if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
+			mShipData.levelScroll = (int)(mScene.width - mShipData.p.x - mShip.w/2);
 		}
-		if (mShipP.y<mShip.h/2) {
-			mShipP.y=mShip.h/2;
-			if (mShipV.y<0.01) mShipV.y=0.01;
+		if (mShipData.p.y<mShip.h/2) {
+			mShipData.p.y=mShip.h/2;
+			if (mShipData.v.y<0.01) mShipData.v.y=0.01;
 		}
-		if (mShipP.z<2) {
-			mShipP.z=2;
-			if (mShipV.z<0.01) mShipV.z=0.01;
+		if (mShipData.p.z<2) {
+			mShipData.p.z=2;
+			if (mShipData.v.z<0.01) mShipData.v.z=0.01;
 		}		
 
-		mShip.x=(int)Math.round(mShipP.x-mShip.w/2);
-		mShip.y=(int)Math.round(mShipP.y-mShip.h/2);
-		mShip.z=(int)Math.round(mShipP.z);
-//		mLevelEnd.x=mLevelLength+50+mLevelScroll;
+		mShip.x=(int)Math.round(mShipData.p.x-mShip.w/2);
+		mShip.y=(int)Math.round(mShipData.p.y-mShip.h/2);
+		mShip.z=(int)Math.round(mShipData.p.z);
+//		mLevelEnd.x=mLevelLength+50+mShipData.levelScroll;
 
 
 
@@ -417,62 +506,63 @@ public class SIRDSFlighter implements SIRDSlet	{
 				coll|=mShip.intersect((ZSprite)sp,0,0,true);
 			//else if (sp instanceof ZSpriteRepeater)
 			//	coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);
-		int life = mCurrentLife;
+		int life = mShipData.life;
 		if (coll) {
 			mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
 			updateLifeDamaging();
-			if (mCurrentLife<=0) return; //game end
+			if (mShipData.life<mMinimalRequiredLife) return; //game end
 		}
 		updateLifeHealing();
-		if (life != mCurrentLife)
+		if (life != mShipData.life)
 			updateLifeProgressBar();
 
 		if (mShip.x > mLevelLength + 100 + mLevelEnd.w) startLevel(mLevel+1);
 
 
 		//------------------scroll level--------------------
-		if (!mInitialWait) mLevelScroll-=4;
+		if (!mInitialWait) mShipData.levelScroll-=4;
 		if (mShip.x > mLevelLength + 50) {
-			mLevelScroll-=10;
-			mShipP.x+=10;
+			mShipData.levelScroll-=10;
+			mShipData.p.x+=10;
 		}
-		mScene.setCameraPosition(-mLevelScroll, -(mScene.height-mZBufferH)/2, 0);
+		mScene.setCameraPosition(-mShipData.levelScroll, -(mScene.height-mZBufferH)/2, 0);
 	}
 	
 	private void updateLifeDamaging(){
-		if (mCurrentLife<=0) return;
+		if (mShipData.life<mMinimalRequiredLife) return;
 
-		mCurrentLife=0;
+		int life=0;
 		for (int y=0;y<mShip.h;y++){
 			int b=mShip.getLineIndex(y);
 			for (int x=0;x<mShip.w;x++)
-				if (mShip.dataVisible[b+x]) mCurrentLife+=1;
+				if (mShip.dataVisible[b+x]) life+=1;
 		}
-		mCurrentLifeTotal = mCurrentLife;
-		mCurrentLife=mCurrentLife-mInitialLife/2;
+		mShipData.life = life;
 
 
-		if (mCurrentLife<=0) {
+		if (life<mMinimalRequiredLife) {
 			mSoundLargeExplosion.play();
-			
-			//You died now
-			mScene.clear();
+
+			//if (mRemainingTimeWarps <= 0 ){
+				//You died now
+				//mScene.clear();
 
 			ZSprite mes=mScene.setZSprite("mes",new ZSprite());
 			mes.setToString("YOU\nDIED",mManager.getGraphics().getFontMetrics(
 			//new Font("Arial Black",Font.BOLD,100)),0,15);
 			new Font("Arial Black",Font.BOLD,150)),0,15);
 		//mLevelEnd.rotate90R();
-			mes.x=(mScene.width-mes.w)/2;
+			mes.x=(mScene.width-mes.w)/2-1000;
 			mes.y=(mScene.height-mes.h)/2;
-
+			mScene.setCameraPosition(-1000, 0, 0);
 			mLastDied = mCurTime;
+			//}
 			updateLifeProgressBar();
 		}
 	}
 
 	private void updateLifeHealing(){
-		if (mCurrentLifeTotal >= mInitialLife || mCurrentLife <= 0 || mHealingSpeed == 0) return;
+		if (mShipData.life >= mInitialLife || mShipData.life < mMinimalRequiredLife || mHealingSpeed == 0) return;
 
 		int healablePixels = 0;
 		for (int y=1;y<mShip.h-1;y++){
@@ -511,8 +601,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 					if (pixelToHeal == 0) {
 						mShip.dataVisible[b+x] = true;
 						pixelToHealIndex++;
-						mCurrentLife++; //increment for every single pixel, because sometimes it doesn't find all (bug? or some narrow path)
-						mCurrentLifeTotal++;
+						mShipData.life++; //increment for every single pixel, because sometimes it doesn't find all (bug? or some narrow path)
 						if (pixelToHealIndex>=pixelsToHeal.size()) return;
 						else pixelToHeal = pixelsToHeal.get(pixelToHeal);
 					} else pixelToHeal--;
@@ -526,12 +615,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 			life=mScene.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
 			life.x=5;
 			life.y=5;
-			life.z=ZDraw.MAXZ;
+			life.z=ZDraw.MAXZ/2;
 		}
 
 		int padding=1;
 		int len=life.w-2*padding;
-		int healthyEnd=len*(mCurrentLife)*2/mInitialLife+padding;
+		int healthyEnd=len*(mShipData.life - mMinimalRequiredLife)/(mInitialLife - mMinimalRequiredLife)+padding;
 		for (int x=0; x<life.w;x++){
 			int b=life.getLineIndex(padding);
 			int color=0xffeeeeee;
