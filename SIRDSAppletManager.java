@@ -500,6 +500,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			gbc.gridx += 1;
 			id += 1;
 		 }
+		 mSelectedOption = selectedSIRDSlet.getDefaultOption();
 		/*gbc.gridwidth=1;
 		gbc.gridy = 2;
 		gbc.gridx = 0;

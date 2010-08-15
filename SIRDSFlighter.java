@@ -38,14 +38,15 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected ZSprite mShip, mBaseShip;
 	private Vector3d mShipV,mShipP;
 	private final int MAXFLYZ=19;//ZDraw.MAXZ-z-Shipheight
-	private int mInitialLife, mCurrentLife, mCurrentLifeTotal; //mCurrentLift = mCurrentLifeTotal - MinimalRequiredLife;
+	private int mInitialLife, mCurrentLife, mCurrentLifeTotal, mMinimalRequiredLife; //mCurrentLift = mCurrentLifeTotal - MinimalRequiredLife;
+	private int mHealingSpeed, mTimeWarpPerLevel, mRemainingTimeWarps;
 	protected ArrayList<Cuboid> mShoots;
 	protected long mCurTime,mLastShoot = 0, mLastDied=0;
 	protected int mShootTimeout, mShootCount;
 	//World
 	protected final static int firstLevel = 0;
 	protected int mDifficulty = DIFF_NORMAL;
-	public final static int mLastLevel = 9; //last existing level (don't forget to recompile!)
+	public int mLastLevel = 9; //last existing level (don't forget to recompile!)
 	protected ZSprite mLevelEnd;
 	protected int mLevelScroll, mLevel, mLevelLength;
 	protected ArrayList<ScenePrimitive> mLevelPrimitives;
@@ -79,10 +80,17 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mSoundLargeExplosion = mManager.getAudioClip("flighter/vehicleexplosion_diode111.wav");
 
 		mBaseShip=mScene.createZSprite("flighter/ship.png");
-		mDifficulty = option;
-
-		mRandom = new Random();
+		mInitialLife=0;
+		for (int y=0;y<mBaseShip.h;y++){
+			int b=mBaseShip.getLineIndex(y);
+			for (int x=0;x<mBaseShip.w;x++)
+				if (mBaseShip.dataVisible[b+x]) mInitialLife+=1;
+		}
 		
+		mRandom = new Random();
+
+		setDifficulty(option);
+
 		startLevel(option >= DIFF_HARD?firstLevel+1:firstLevel); //skip first level (training) with hard
 	}
 	protected ScenePrimitive addSerializedObject(Map<String, Object> m){
@@ -120,6 +128,37 @@ public class SIRDSFlighter implements SIRDSlet	{
 		return sp;
 	}
 
+	protected void setDifficulty(int diff){
+		mDifficulty = diff;
+		switch (diff){
+			case DIFF_VERY_EASY:
+				mMinimalRequiredLife = mInitialLife * 30 / 100;
+				mHealingSpeed = 10;
+				mTimeWarpPerLevel = 2;
+				break;
+			case DIFF_EASY:
+				mMinimalRequiredLife = mInitialLife * 40 / 100;
+				mHealingSpeed = 5;
+				mTimeWarpPerLevel = 1;
+				break;
+			case DIFF_NORMAL:
+				mMinimalRequiredLife = mInitialLife * 50 / 100;
+				mHealingSpeed = 1;
+				mTimeWarpPerLevel = 0;
+				break;
+			case DIFF_HARD:
+				mMinimalRequiredLife = mInitialLife * 60 / 100;
+				mHealingSpeed = 0;
+				mTimeWarpPerLevel = 0;
+				break;
+			case DIFF_IMPOSSIBLE:
+				mMinimalRequiredLife = mInitialLife - 1;
+				mHealingSpeed = 0;
+				mTimeWarpPerLevel = 0;
+				break;
+		}
+	}
+
 	protected void startLevel(int level){
 		if (level > mLastLevel) return;
 		mScene.clear();
@@ -129,16 +168,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShip=mBaseShip.fastClone();
 		mShip.dataVisible = mShip.dataVisible.clone();
 		mShip=mScene.setZSprite("ship",mScene.createZSprite("flighter/ship.png"));
-		mInitialLife=0;
-		for (int y=0;y<mShip.h;y++){
-			int b=mShip.getLineIndex(y);
-			for (int x=0;x<mShip.w;x++)
-				if (mShip.dataVisible[b+x]) mInitialLife+=1;
-		}
-		mCurrentLife=mInitialLife;
+		mCurrentLife=mInitialLife - mMinimalRequiredLife;
 		mCurrentLifeTotal=mInitialLife;
 		updateLifeProgressBar();
-		
+		mRemainingTimeWarps = mTimeWarpPerLevel;
+	
 		mShip.x=300-mShip.w/2;
 		mShip.y=mZBufferH/2-mShip.h/2;
 		mShip.z=10;
@@ -438,7 +472,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 
 	private void updateLifeHealing(){
-		if (mCurrentLifeTotal >= mInitialLife || mCurrentLife <= 0) return;
+		if (mCurrentLifeTotal >= mInitialLife || mCurrentLife <= 0 || mHealingSpeed == 0) return;
 
 		int healablePixels = 0;
 		for (int y=1;y<mShip.h-1;y++){
@@ -454,7 +488,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 
 		//generate a list of pixel to heal (every healable pixel is identified with a number between 0 and healablePixels)
-		int healingSpeed = 5;
+		int healingSpeed = mHealingSpeed;
 		if (healingSpeed > healablePixels) healingSpeed = healablePixels;
 		ArrayList<Integer> pixelsToHeal = new ArrayList<Integer>(healingSpeed);
 		for (int i=0;i<healingSpeed;i++) pixelsToHeal.add(mRandom.nextInt(healablePixels - i));

@@ -20,8 +20,8 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	private EditingState mState = EditingState.ES_NORMAL;
 	private Map<String, String> mBasicElements;
 	@Override
-	public void start(Object manager){
-		super.start(manager);
+	public void start(Object manager, int option){
+		super.start(manager, option);
 		mLastLevel = 1000;
 		
 		mManager.setShowFloaterCursor(true);
