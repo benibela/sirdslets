@@ -199,6 +199,17 @@ public class SIRDSFlighter implements SIRDSlet	{
 		if (level == 6 && mDifficulty>=DIFF_NORMAL) mMinimalRequiredLife = mInitialLife*50/100; //UGLY hack: level 6 is not impossible to play if the game is too strict
 		mManager.suspendRendering();
 		mScene.clear();
+		mScene.removeFloater("border1");
+		mScene.removeFloater("border2");
+		Floater border = new Floater(mScene.width,2);
+		for (int i=0;i<border.data.length;i++) border.data[i] = 0xff888888;
+		border.y = mZBufferYStart;
+		mScene.setFloater("border1",border);
+		border = border.fastClone();
+		border.y = mZBufferYStart + mZBufferH;
+		mScene.setFloater("border2", border);
+
+
 		mScene.removeFloater("zerror");
 		for (int i=0;i<mTimeWarpPerLevel;i++) {
 			mScene.setFloater("clock"+i, mClockSymbols.get(i));

@@ -12,7 +12,22 @@ public class Floater extends IntArrayImage{
 	Floater(int nw, int nh){
 		setSize(nw, nh);
 	}
-	
+
+	public Floater fastClone(){
+		Floater f = new Floater();
+		f.x = x;
+		f.y = y;
+		f.z = z;
+		f.visible = visible;
+		f.ignoreHeightmap = ignoreHeightmap;
+		f.data=data;
+		f.w = w;
+		f.h = h;
+		f.start = start;
+		f.stride = stride;
+		return f;
+	}
+
 	//set ignoreHeighmap to false to draw only the pixel of the floater which are actually
 	//visible => problem, SIRDS can't be partially visible=>you normally can still see the floater on 
 	//one (only one) eye
@@ -22,8 +37,8 @@ public class Floater extends IntArrayImage{
 		if (data.length!=w*h)
 			throw new IllegalArgumentException("invalid floater data");
 		int SIRDW=ZDraw.SIRDW;
-		if (w>SIRDW)
-			throw new IllegalArgumentException("floater width to large");
+		//if (w>SIRDW)
+		//	throw new IllegalArgumentException("floater width to large");
 		for (int cy=0;cy<h;cy++){
 			if (y+cy<0) continue;
 			if (y+cy>=output.h) break;
