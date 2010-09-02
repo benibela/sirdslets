@@ -10,7 +10,7 @@ import java.applet.*;
 import java.util.*;
 import java.awt.*;
 import java.io.*; 
-import javax.imageio.*; 
+import javax.imageio.*;
 import java.net.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -604,6 +604,8 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		//renderer.paint(getContentPane().getGraphics());
 	}
 
+	private int frameLogId = 0;
+
 	@Override
 	public void paint(Graphics g)
 	{
@@ -652,6 +654,13 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			if (mShowInfos)
 				g.drawString(mFPS, 15, 25);
 		}
+/*			Graphics g2 = mGuiDoubleBuffer.getGraphics();
+			g2.drawImage(renderer.getBackBuffer(), 0, 0, this);
+		}
+		try{
+			ImageIO.write((BufferedImage)mGuiDoubleBuffer, "png", new File("/tmp/sirdslets/framelog"+frameLogId+".png"));
+		} catch (IOException e){}
+		frameLogId++;*/
 	}
 	/*
 	@Override
