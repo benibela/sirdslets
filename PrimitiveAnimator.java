@@ -31,7 +31,7 @@ public class PrimitiveAnimator implements PrimitiveModifier, JSONSerializable{
 	public ArrayList<Integer> roiSize=new ArrayList<Integer>();
 	public ZSprite prim;
 	public float time;
-	public void calculate(int timeStep){
+	public void calculate(double timeStep){
 		time += timeStep*velocity/1000.0f;
 		while (time>=roiPos.size()/2) time-=roiPos.size()/2;
 		while (time<0) time+=roiPos.size()/2;
@@ -43,6 +43,9 @@ public class PrimitiveAnimator implements PrimitiveModifier, JSONSerializable{
 		if (2*curRoi+1<roiSize.size()){
 			roiW = roiSize.get(curRoi*2);
 			roiH = roiSize.get(curRoi*2+1);
+		} else {
+			roiW = roiSize.get(0);
+			roiH = roiSize.get(1);
 		}
 		prim.setROI(roiX, roiY, roiW, roiH);
 	}
