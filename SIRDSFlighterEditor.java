@@ -346,7 +346,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 
 	protected void scrollLevelDelta(int delta){
 		mShipData.levelScroll+=delta;
-		mScene.setCameraPosition(-mShipData.levelScroll,-(mScene.height-mZBufferH)/2,0)	;
+		mScene.setCameraPosition((int)(-mShipData.levelScroll),-(mScene.height-mZBufferH)/2,0)	;
 	}
 	
 	protected void setCurrentSelection(int currentSelection){
@@ -380,8 +380,8 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 	public void addCuboidAtCursor(){
 		Floater f=mManager.getFloaterCursor();
 		mManager.suspendRendering();
-		int minx=f.x-mShipData.levelScroll-50; if (minx%cuboidDelta!=0) minx-=minx%cuboidDelta;
-		int maxx=f.x-mShipData.levelScroll+50; if (maxx%cuboidDelta!=0) maxx-=maxx%cuboidDelta;
+		int minx=f.x-(int)(mShipData.levelScroll)-50; if (minx%cuboidDelta!=0) minx-=minx%cuboidDelta;
+		int maxx=f.x-(int)(mShipData.levelScroll)+50; if (maxx%cuboidDelta!=0) maxx-=maxx%cuboidDelta;
 		int miny=Math.max(0,f.y-mZBufferYStart-100);  if (miny % cuboidDelta!=0) miny-=miny%cuboidDelta;
 		int maxy=Math.min(mZBufferH,f.y-mZBufferYStart+100);if (maxy % cuboidDelta!=0) maxy-=maxy%cuboidDelta;
 		int minz=Math.max(0,f.z-5);

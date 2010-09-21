@@ -93,6 +93,7 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 
 		int rx=x+xo-fx;//relativ offset (local->global system)
 		int ry=y+yo-fy;
+		try{
 		for (int cy=fy; cy<ty; cy++)
 		{
 			int b = getLineIndex(cy);
@@ -103,6 +104,10 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 					zbuffer.customPut(bo+cx,data[b+cx]+z);
 //					System.out.println("!");
 				}
+		}
+		} catch (ArrayIndexOutOfBoundsException e){
+			System.out.println(x+"/"+y+"/"+z+": "+h+"/"+w+"/"+tx+"/"+ty+"=>"+getLineIndex(ty-1)+" "+ data.length+" "+dataVisible.length+"  roi: "+start+" - "+stride);
+			throw e;
 		}
 	}
 

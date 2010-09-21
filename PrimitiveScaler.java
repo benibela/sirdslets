@@ -35,7 +35,7 @@ public class PrimitiveScaler implements PrimitiveModifier, JSONSerializable {
 
 	public float time;
 	public ScenePrimitive prim;
-	public void calculate(int timeStep){
+	public void calculate(double timeStep){
 		if (scales.size()<2) return;
 		time+=timeStep*velocity/1000.0f;
 

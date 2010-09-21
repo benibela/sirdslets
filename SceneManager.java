@@ -38,7 +38,7 @@ public class SceneManager {
 				it.remove();
 	}
 
-	public void calculateFrame(int timePerFrame){
+	public void calculateFrame(double timePerFrame){
 		Iterator<Map.Entry<String,Floater>> it = namedFloaters.entrySet().iterator();
 		while (it.hasNext()) {
 			Map.Entry<String,Floater> pairs = it.next();
@@ -47,8 +47,8 @@ public class SceneManager {
 				tf.timetolive-=timePerFrame;
 				if (tf.timetolive<0)
 					tf.visible=false; //TODO: lockup docu
-			}
-		}
+			} 
+		} 
 
 		for (PrimitiveModifier pm: mModifiers)
 			pm.calculate(timePerFrame);

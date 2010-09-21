@@ -6,6 +6,7 @@
             <name>SIRDgames</name>
             <source-roots>
                 <root id="src.SIRD.dir"/>
+                <root id="src.output.dir"/>
             </source-roots>
             <test-roots/>
         </data>

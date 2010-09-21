@@ -21,7 +21,7 @@ public class PrimitiveMarker implements PrimitiveModifier {
 	public Map<String,Object> properties = new TreeMap<String,Object>();
 
 	public ScenePrimitive prim;
-	public void calculate(int timeStep){
+	public void calculate(double timeStep){
 	}
 
 	public Map<String, Object> jsonSerialize() {

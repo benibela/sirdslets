@@ -185,6 +185,7 @@ public class IntArrayImage{
 	public void setToImageARGB(BufferedImage img){
 		setSize(img.getWidth(), img.getHeight());
 		data=img.getRGB(0,0,w,h, data, 0, w);
+		assert (data.length == w*h);
 	}
 
 	public void setToStringARGB(String text, FontMetrics fontMetric, Color c){

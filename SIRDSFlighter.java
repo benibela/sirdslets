@@ -31,7 +31,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		public Vector3d v, p;
 		public int life;
 		public boolean[] damage;
-		public int levelScroll;
+		public float levelScroll;
 		public void assign(ShipInformation shi){
 			if (v != null) v.assign(shi.v);
 			else v = new Vector3d(shi.v);
@@ -53,6 +53,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	protected final int mZBufferH=500;
 	protected boolean mInitialWait;
 	protected Random mRandom;
+	final static int expectedTimePerFrame = 40;
 	//Ship
 	protected ZSprite mShip, mBaseShip;
 	protected ShipInformation mShipData;
@@ -347,7 +348,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 					mScene.removeFloater("clock"+mRemainingTimeWarps);
 				}
 				updateLifeProgressBar();
-				mScene.setCameraPosition(-mShipData.levelScroll, -(mScene.height-mZBufferH)/2, 0);
+				mScene.setCameraPosition((int)(-mShipData.levelScroll), -(mScene.height-mZBufferH)/2, 0);
 			}
 			return;
 		}
@@ -376,94 +377,103 @@ public class SIRDSFlighter implements SIRDSlet	{
 		}
 
 		//---------------------keyinput------------------------
-		final double acceleration=2;
-		Vector3d mShipA=new Vector3d();
-		mShipA.x-=mManager.isKeyPressed(KEY_SHIP_ACC_LEFT)?acceleration:0;
-		mShipA.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
-		mShipA.y-=mManager.isKeyPressed(KEY_SHIP_ACC_UP)?acceleration:0;
-		mShipA.y+=mManager.isKeyPressed(KEY_SHIP_ACC_DOWN)?acceleration:0;
-		mShipA.z-=(mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND3)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND4))?0.25:0;
-		mShipA.z+=(mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND3))?0.25:0;
-
-		if (mInitialWait && mShipA.length()>0) mInitialWait = false;
 
 		if (mManager.isKeyPressed(KEY_SHIP_FIRE) || mManager.isKeyPressedChanged(KEY_SHIP_FIRE))
 			shipFire();
 
-		for (PrimitiveModifier pm: mSpecialModifier){
-			PrimitiveMarker m=((PrimitiveMarker)pm);
-			Object subtype = m.properties.get("subtype");
-			if ("gravitron".equals(subtype)){
-				Vector3d dir = mShipData.p.clone().sub(m.prim.centerI());
-				dir.z = 0; 
-				double distance = dir.length();
-				if (distance*distance > 500*500 + 500*500)
-					continue; //ignore things too far away
-				double expfac = ((Number)m.properties.get("expfactor") ).doubleValue();
-				double mulfac = ((Number)m.properties.get("mulfactor") ).doubleValue();
+		if (timeDelta > 200) timeDelta = 200;
+		for (int repetition=0;repetition<timeDelta; repetition++){
+			final double acceleration=1.5;
+			Vector3d mShipA=new Vector3d();
+			mShipA.x-=mManager.isKeyPressed(KEY_SHIP_ACC_LEFT)?acceleration:0;
+			mShipA.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
+			mShipA.y-=mManager.isKeyPressed(KEY_SHIP_ACC_UP)?acceleration:0;
+			mShipA.y+=mManager.isKeyPressed(KEY_SHIP_ACC_DOWN)?acceleration:0;
+			mShipA.z-=(mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND3)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND4))?0.2:0;
+			mShipA.z+=(mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND3))?0.2:0;
 
-				mShipA.sub(dir.multiply(mulfac * Math.pow(distance, - expfac - 1))); //-1 to normalize dir
-			} else if ("accelerator".equals(subtype)) {
-				ArrayList<Number> distances = (ArrayList<Number>)m.properties.get("distances");
-				Vector3i dist;
-				if (distances != null) dist = new Vector3i(distances);
-				else dist = m.prim.cornerRBN().sub(m.prim.centerI());
-				ArrayList<Number> acc = (ArrayList<Number>)m.properties.get("acceleration");
-				if (acc == null) continue;
-				Vector3i center = m.prim.centerI();
-				if (Math.abs(center.x - mShipData.p.x) > dist.x) continue;
-				if (Math.abs(center.y - mShipData.p.y) > dist.y) continue;
-				if (Math.abs(center.z - mShipData.p.z) > dist.z) continue;
-				mShipA.add(new Vector3d(acc));
+			if (mInitialWait) {
+				if (mShipA.length()>0) mInitialWait = false;
+				else break;
+			}
+
+			for (PrimitiveModifier pm: mSpecialModifier){
+				PrimitiveMarker m=((PrimitiveMarker)pm);
+				Object subtype = m.properties.get("subtype");
+				if ("gravitron".equals(subtype)){
+					Vector3d dir = mShipData.p.clone().sub(m.prim.centerI());
+					dir.z = 0;
+					double distance = dir.length();
+					if (distance*distance > 500*500 + 500*500)
+						continue; //ignore things too far away
+					double expfac = ((Number)m.properties.get("expfactor") ).doubleValue() - 0.1;
+					double mulfac = ((Number)m.properties.get("mulfactor") ).doubleValue() * 0.3 ;
+
+					mShipA.sub(dir.multiply(mulfac * Math.pow(distance, - expfac - 1))); //-1 to normalize dir
+				} else if ("accelerator".equals(subtype)) {
+					ArrayList<Number> distances = (ArrayList<Number>)m.properties.get("distances");
+					Vector3i dist;
+					if (distances != null) dist = new Vector3i(distances);
+					else dist = m.prim.cornerRBN().sub(m.prim.centerI());
+					ArrayList<Number> acc = (ArrayList<Number>)m.properties.get("acceleration");
+					if (acc == null) continue;
+					Vector3i center = m.prim.centerI();
+					if (Math.abs(center.x - mShipData.p.x) > dist.x) continue;
+					if (Math.abs(center.y - mShipData.p.y) > dist.y) continue;
+					if (Math.abs(center.z - mShipData.p.z) > dist.z) continue;
+					mShipA.add((new Vector3d(acc)).multiply(0.5));
+				}
+			}
+
+
+			mShipA.multiply(0.04);
+			
+			//-----------------move user ship----------------------
+			mShipData.v.add(mShipA);
+			/*if (mShipData.v.x>100) mShipData.v.x=100;
+			if (mShipData.v.y>60) mShipData.v.y=60;
+			if (mShipData.v.z>1.5) mShipData.v.z=1.5;
+			if (mShipData.v.x<-60) mShipData.v.x=-60;
+			if (mShipData.v.y<-60) mShipData.v.y=-60;
+			if (mShipData.v.z<-1) mShipData.v.z=-1;*/
+			/*mShipData.v.add(mShipData.v.clone().abs().add(1).multiply(mShipData.v).multiply(-0.01));//slowing down
+			if (mShipA.x==0) mShipData.v.x-=0.1*mShipData.v.x; //fast slowdown
+			if (mShipA.y==0) mShipData.v.y-=0.1*mShipData.v.y; //fast slowdown
+			if (mShipA.z==0) mShipData.v.z-=0.1*mShipData.v.z; //fast slowdown*/
+			mShipData.v.multiply(0.997);
+			mShipData.v.z = mShipData.v.z * 0.997;
+
+			//mShipData.p.x+=1;
+			mShipData.p.add(mShipData.v.clone().multiply(0.04));
+			/*if (mShipData.p.x+mShip.w>mScene.width) {
+				mShipData.p.x=mScene.height-mShip.w;
+				mShipData.v.x=-0.01;
+			}
+			 * */
+			if (mShipData.p.y+mShip.h/2>mZBufferH) {
+				mShipData.p.y=mZBufferH-mShip.h/2;
+				if (mShipData.v.y>-0.01) mShipData.v.y=-0.01;
+			}
+			if (mShipData.p.z>MAXFLYZ) {
+				mShipData.p.z=MAXFLYZ;
+				if (mShipData.v.z>-0.01) mShipData.v.z=-0.01;
+			}
+			if (mShipData.p.x< -mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2) { //there are maxz unreachable pixel at the left screen side
+				mShipData.p.x=-mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2;
+				if (mShipData.v.x<0.01) mShipData.v.x=0.01;
+			}
+			if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
+				mShipData.levelScroll = (int)(mScene.width - mShipData.p.x - mShip.w/2);
+			}
+			if (mShipData.p.y<mShip.h/2) {
+				mShipData.p.y=mShip.h/2;
+				if (mShipData.v.y<0.01) mShipData.v.y=0.01;
+			}
+			if (mShipData.p.z<2) {
+				mShipData.p.z=2;
+				if (mShipData.v.z<0.01) mShipData.v.z=0.01;
 			}
 		}
-
-		//-----------------move user ship----------------------
-		mShipData.v.add(mShipA);
-		/*if (mShipData.v.x>100) mShipData.v.x=100;
-		if (mShipData.v.y>60) mShipData.v.y=60;
-		if (mShipData.v.z>1.5) mShipData.v.z=1.5;
-		if (mShipData.v.x<-60) mShipData.v.x=-60;
-		if (mShipData.v.y<-60) mShipData.v.y=-60;
-		if (mShipData.v.z<-1) mShipData.v.z=-1;*/
-		/*mShipData.v.add(mShipData.v.clone().abs().add(1).multiply(mShipData.v).multiply(-0.01));//slowing down
-		if (mShipA.x==0) mShipData.v.x-=0.1*mShipData.v.x; //fast slowdown
-		if (mShipA.y==0) mShipData.v.y-=0.1*mShipData.v.y; //fast slowdown
-		if (mShipA.z==0) mShipData.v.z-=0.1*mShipData.v.z; //fast slowdown*/
-		mShipData.v.multiply(0.9);
-		mShipData.v.z = mShipData.v.z * 0.9;
-
-		//mShipData.p.x+=1;
-		mShipData.p.add(mShipData.v);
-		/*if (mShipData.p.x+mShip.w>mScene.width) {
-			mShipData.p.x=mScene.height-mShip.w;
-			mShipData.v.x=-0.01;
-		}
-		 * */
-		if (mShipData.p.y+mShip.h/2>mZBufferH) {
-			mShipData.p.y=mZBufferH-mShip.h/2;
-			if (mShipData.v.y>-0.01) mShipData.v.y=-0.01;
-		}
-		if (mShipData.p.z>MAXFLYZ) {
-			mShipData.p.z=MAXFLYZ;
-			if (mShipData.v.z>-0.01) mShipData.v.z=-0.01;
-		}
-		if (mShipData.p.x< -mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2) { //there are maxz unreachable pixel at the left screen side
-			mShipData.p.x=-mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2;
-			if (mShipData.v.x<0.01) mShipData.v.x=0.01;
-		}
-		if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
-			mShipData.levelScroll = (int)(mScene.width - mShipData.p.x - mShip.w/2);
-		}
-		if (mShipData.p.y<mShip.h/2) {
-			mShipData.p.y=mShip.h/2;
-			if (mShipData.v.y<0.01) mShipData.v.y=0.01;
-		}
-		if (mShipData.p.z<2) {
-			mShipData.p.z=2;
-			if (mShipData.v.z<0.01) mShipData.v.z=0.01;
-		}		
-
 		mShip.x=(int)Math.round(mShipData.p.x-mShip.w/2);
 		mShip.y=(int)Math.round(mShipData.p.y-mShip.h/2);
 		mShip.z=(int)Math.round(mShipData.p.z);
@@ -536,12 +546,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 
 		//------------------scroll level--------------------
-		if (!mInitialWait) mShipData.levelScroll-=4;
+		if (!mInitialWait) mShipData.levelScroll-=2 * timeDelta / 20.0;
 		if (mShip.x > mLevelLength + 50) {
-			mShipData.levelScroll-=10;
-			mShipData.p.x+=10;
+			mShipData.levelScroll-=10 * timeDelta / 20.0;
+			mShipData.p.x+=10 * timeDelta / 20.0;
 		}
-		mScene.setCameraPosition(-mShipData.levelScroll, -(mScene.height-mZBufferH)/2, 0);
+		mScene.setCameraPosition((int)(-mShipData.levelScroll), -(mScene.height-mZBufferH)/2, 0);
 	}
 	
 	private void updateLifeDamaging(){

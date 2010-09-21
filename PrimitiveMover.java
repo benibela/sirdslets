@@ -31,7 +31,7 @@ public class PrimitiveMover implements PrimitiveModifier, JSONSerializable {
 
 	public float time;
 	public ScenePrimitive prim;
-	public void calculate(int timeStep){
+	public void calculate(double timeStep){
 		if (positions.size()<2) return;
 		final int pointsToUse=4;
 		time+=timeStep*velocity/1000.0f;

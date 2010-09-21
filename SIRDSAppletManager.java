@@ -431,7 +431,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		renderer=new RendererSoftware();
 		renderer.init(this,scene);
 		
-		timePerFrame=40; 
+		timePerFrame=20;
 
 		setFrameSIRD("squares.png","");
 
@@ -561,39 +561,39 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		//int lastFrameTime=System.currentTimeMillis();
 		int conSlow=0;
 		long totalTime=0;
+		long realTimeDelta = timePerFrame;
+
+		AccurateTiming timing = new AccurateTiming();
+
 		while (Thread.currentThread() == mUpdateThread)
 		{
-			long drawstart = System.currentTimeMillis();
+			System.out.println(realTimeDelta);
+			long drawstart = timing.getTiming();
 			suspendRendering();
 			if  (!mPauseScene){
 				totalTime+=timePerFrame;
-				scene.calculateFrame(timePerFrame);
-				if (curSIRDSlet!=null) curSIRDSlet.calculateFrame(totalTime);
+				scene.calculateFrame(realTimeDelta);
+				if (curSIRDSlet!=null) curSIRDSlet.calculateFrame(drawstart);
 			}
 			renderer.renderFrame();
 			resumeRendering();
 			mFrameNumber++;
+			
+			long s=timePerFrame - (timing.getTiming()-drawstart);
+			System.out.println("sleep:"+s);
+			if (s<=0) {
+				//drawing to slow
+				conSlow+=1;
+				if (conSlow>10) timePerFrame++;
+			} else {
+				conSlow=0;
+				timing.threadSleep(s);
+			}
+			long realtime=timing.getTiming()-drawstart;
+			if (realtime<=0) realtime=1;
+			mFPS = ("FPS:"+(1000/realtime)+" SPF:"+realtime);
 
-			try
-			{
-				long s=timePerFrame - (System.currentTimeMillis()-drawstart);
-				
-				if (s<=0) {
-					//drawing to slow
-					conSlow+=1;
-					if (conSlow>10) timePerFrame++;
-					Thread.sleep(1);
-				} else {
-					Thread.sleep(s);
-					conSlow=0;
-				}
-				long realtime=System.currentTimeMillis()-drawstart;
-				if (realtime<=0) realtime=1;
-				mFPS = ("FPS:"+(1000/realtime)+" SPF:"+realtime);
-			}
-			catch (InterruptedException e)
-			{
-			}
+			realTimeDelta = timing.getTiming() - drawstart;
 		}
 	}
 
