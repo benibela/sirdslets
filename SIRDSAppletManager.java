@@ -25,10 +25,12 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JRootPane;
-import javax.swing.JTabbedPane;
+import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 
 class TimedFloater extends Floater{
@@ -64,6 +66,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 
 	private Image mGuiDoubleBuffer;
 	private boolean mShowInfos;
+	private int mShowInfoCount;
 	private String mFPS;
 
 	JPanel startPanel;
@@ -326,16 +329,27 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			}});
 		optionPanel.add(randomOffset);
 
-		label = new JLabel(mTranslator.showPerformance());
+		label = new JLabel(mTranslator.setFrameRate());
 		label.setForeground(optionPanelLabelColor);
 		optionPanel.add(label);
-		JCheckBox showFPS=new JCheckBox();
+		/*JCheckBox showFPS=new JCheckBox();
 		showFPS.setOpaque(false);
 		showFPS.addItemListener(new ItemListener(){
 			public void itemStateChanged(ItemEvent e){
 				mShowInfos = e.getStateChange()==ItemEvent.SELECTED;
 			}});
-		optionPanel.add(showFPS);
+		optionPanel.add(showFPS);*/
+		final JSpinner fps = new JSpinner();
+		fps.setValue(1000/timePerFrame);
+		fps.setOpaque(false);
+		fps.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				timePerFrame = 1000/(Integer)(fps.getValue());
+				mShowInfos = true;
+				mShowInfoCount = 500;
+			}
+		});
+		optionPanel.add(fps);
 
 		label = new JLabel(mTranslator.sound());
 		label.setForeground(optionPanelLabelColor);
@@ -429,6 +443,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	public void init()
 	{
 		mTranslator = Translations.getInstance();
+		timePerFrame=20;
 
 		addKeyListener(this);
 		addMouseListener(this);
@@ -459,7 +474,6 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		renderer=new RendererSoftware();
 		renderer.init(this,scene);
 		
-		timePerFrame=20;
 
 		setFrameSIRD("squares.png","");
 
@@ -673,14 +687,21 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 				g2.translate(-x,-y);
 			}
 
-			if (mShowInfos)
+			if (mShowInfos) {
 				g2.drawString(mFPS, 15, 25);
+			}
 			
 			g.drawImage(mGuiDoubleBuffer, 0, 0, this);
 		} else {
 			g.drawImage(renderer.getBackBuffer(), 0, 0, this);
-			if (mShowInfos)
+			if (mShowInfos){
 				g.drawString(mFPS, 15, 25);
+			}
+		}
+
+		if (mShowInfos) {
+			mShowInfoCount-=1;
+			if (mShowInfoCount<=0) mShowInfos=false;
 		}
 /*			Graphics g2 = mGuiDoubleBuffer.getGraphics();
 			g2.drawImage(renderer.getBackBuffer(), 0, 0, this);

@@ -37,6 +37,7 @@ public class Translations_DE extends Translations{
 	public String invertCE(){return "Invertiert (Kreuzblick)";}
 	public String useRandomOffset(){return "Zufällige Verschiebungen:";}
 	public String showPerformance(){return "Framerate:";}
+	public String setFrameRate(){return "Framerate:";}
 	public String sound(){return "Sound:";}
 	public String freeze(){return "Totstellen";}
 	public String continu(){return "Weiter";}

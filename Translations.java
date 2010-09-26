@@ -37,6 +37,7 @@ public class Translations {
 	public String invertCE(){return "Invert (cross eye)";}
 	public String useRandomOffset(){return "Use random offset:";}
 	public String showPerformance(){return "Show performance:";}
+	public String setFrameRate(){return "Frames/Second:";}
 	public String sound(){return "Sound:";}
 	public String freeze(){return "freeze";}
 	public String continu(){return "continue";}
