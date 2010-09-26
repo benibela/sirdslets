@@ -383,14 +383,15 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 		if (timeDelta > 200) timeDelta = 200;
 		for (int repetition=0;repetition<timeDelta; repetition++){
-			final double acceleration=1.5;
+			final double acceleration=1.3;
+			final double accelerationz=0.2*acceleration/1.5;
 			Vector3d mShipA=new Vector3d();
 			mShipA.x-=mManager.isKeyPressed(KEY_SHIP_ACC_LEFT)?acceleration:0;
 			mShipA.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
 			mShipA.y-=mManager.isKeyPressed(KEY_SHIP_ACC_UP)?acceleration:0;
 			mShipA.y+=mManager.isKeyPressed(KEY_SHIP_ACC_DOWN)?acceleration:0;
-			mShipA.z-=(mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND3)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND4))?0.2:0;
-			mShipA.z+=(mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND3))?0.2:0;
+			mShipA.z-=(mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND3)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND4))?accelerationz:0;
+			mShipA.z+=(mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND3))?accelerationz:0;
 
 			if (mInitialWait) {
 				if (mShipA.length()>0) mInitialWait = false;
@@ -462,9 +463,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 				mShipData.p.x=-mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2;
 				if (mShipData.v.x<0.01) mShipData.v.x=0.01;
 			}
-			if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 ) { //there are maxz unreachable pixel at the left screen side
-				mShipData.levelScroll = (int)(mScene.width - mShipData.p.x - mShip.w/2);
-			}
+			if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 - 28) {
+				mShipData.levelScroll = (int)(mScene.width - mShipData.p.x - mShip.w/2 - 28);
+			} 
 			if (mShipData.p.y<mShip.h/2) {
 				mShipData.p.y=mShip.h/2;
 				if (mShipData.v.y<0.01) mShipData.v.y=0.01;
@@ -549,7 +550,12 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 
 		//------------------scroll level--------------------
-		if (!mInitialWait) mShipData.levelScroll-=2 * timeDelta / 20.0;
+		if (!mInitialWait)
+			mShipData.levelScroll-=2 * timeDelta / 20.0;
+		if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 - 100) 
+			mShipData.levelScroll -= 1 * timeDelta / 20.0;
+		if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 - 60) 
+			mShipData.levelScroll -= 2 * timeDelta / 20.0;
 		if (mShip.x > mLevelLength + 50) {
 			mShipData.levelScroll-=10 * timeDelta / 20.0;
 			mShipData.p.x+=10 * timeDelta / 20.0;
