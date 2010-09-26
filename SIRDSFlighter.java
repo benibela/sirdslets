@@ -67,7 +67,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private boolean mTimeWarpActive;
 	private static final int mTimeWarpFrameCount = 25*3;
 	protected ArrayList<Cuboid> mShoots;
-	protected long mCurTime,mLastShoot = 0, mLastDied=0;
+	protected long mCurTime,mLastShoot = 0, mLastDied=0,mLastCollisionSound;
 	protected int mShootTimeout, mShootCount;
 	//World
 	protected final static int firstLevel = 0;
@@ -534,7 +534,10 @@ public class SIRDSFlighter implements SIRDSlet	{
 			//	coll|=((ZSpriteRepeater)sp).intersectReversed(mShip,0,0,true);
 		int life = mShipData.life;
 		if (coll) {
-			mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
+			if (mCurTime - mLastCollisionSound > 100) {
+				mSoundCollision[(int)(Math.random()*mSoundCollision.length)].play();
+				mLastCollisionSound = mCurTime;
+			}
 			updateLifeDamaging();
 			if (mShipData.life<mMinimalRequiredLife) return; //game end
 		}

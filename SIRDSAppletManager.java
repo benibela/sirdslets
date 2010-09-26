@@ -76,6 +76,8 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 
 	private Translations mTranslator;
 
+	private AudioThread mAudioLoop;
+
 	class AudioClipWrapper implements AudioClip{
 		private AudioClip mRealClip;
 
@@ -84,7 +86,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		}
 
 		public void play() {
-			if (mSoundEnabled) mRealClip.play();
+			if (mSoundEnabled) mAudioLoop.play(mRealClip); //mRealClip.play();
 		}
 
 		public void loop() {
@@ -95,6 +97,30 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			mRealClip.stop();
 		}
 
+	}
+
+	static class AudioThread implements Runnable{
+		private final Deque<AudioClip> clips = new LinkedList<AudioClip>();
+		public void play(AudioClip clip){
+			synchronized (clips) {
+				clips.add(clip);
+			}
+			synchronized(this) { notify(); }
+		}
+		public void run() {
+			try{
+			while (true){
+				synchronized(this) { wait(); }
+				synchronized (clips){
+					for (AudioClip clip: clips) clip.play();
+					clips.clear();
+				}
+
+			}
+			} catch (InterruptedException e){
+				System.out.println("sound thread failed");
+			}
+		}
 	}
 
 	//sird id: (.*)\.png => load (\1).png
@@ -414,6 +440,8 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		getRootPane().setDoubleBuffered(false); //disable swing double buffer, because the sirds are already double (triple, quadro??) buffered
 		
 		initGUI();
+		mAudioLoop = new AudioThread();
+		(new Thread(mAudioLoop)).start();
 
 		scene.width=getSize().width;
 		scene.height=getSize().height;
@@ -567,7 +595,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 
 		while (Thread.currentThread() == mUpdateThread)
 		{
-			System.out.println(realTimeDelta);
+			//System.out.println(realTimeDelta);
 			long drawstart = timing.getTiming();
 			suspendRendering();
 			if  (!mPauseScene){
@@ -580,7 +608,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			mFrameNumber++;
 			
 			long s=timePerFrame - (timing.getTiming()-drawstart);
-			System.out.println("sleep:"+s);
+			//System.out.println("sleep:"+s);
 			if (s<=0) {
 				//drawing to slow
 				conSlow+=1;
