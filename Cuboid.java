@@ -61,10 +61,20 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 		//System.out.println(deltaZ+ " "+minz+" "+maxz);
 		for (int y=fy; y<=ty; y++){
 			int b=map.getLineIndex(y);
-			for (int x=fx;x<=tx; x++)
-				if (x<nminx+perspectiveOffset) map.customPut(b+x, (deltaZ*(x-nminx))/perspectiveOffset+minz);
-				else if (x>nmaxx-perspectiveOffset) map.customPut(b+x, (deltaZ*(nmaxx-x))/perspectiveOffset+minz);
-				else map.customPut(b+x, maxz);
+			int ttx = nminx+perspectiveOffset-1;
+			if (ttx>tx) ttx = tx;
+			for (int x=fx;x<=ttx; x++) map.customPut(b+x, (deltaZ*(x-nminx))/perspectiveOffset+minz);
+
+			int ftx = ttx;
+			if (ftx < fx) ftx = fx;
+			ttx = nmaxx-perspectiveOffset;
+			if (ttx > tx) ttx = tx;
+
+			for (int x=ftx;x<=ttx; x++) map.customPut(b+x, maxz);
+
+			ttx+=1;
+			if (ttx < fx) ttx = fx;
+			for (int x=ttx; x<tx; x++) map.customPut(b+x, (deltaZ*(nmaxx-x))/perspectiveOffset+minz);
 		}
 	}
 	public boolean intersect(ZSprite sprite, int dx, int dy){

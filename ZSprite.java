@@ -93,22 +93,31 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 
 		int rx=x+xo-fx;//relativ offset (local->global system)
 		int ry=y+yo-fy;
-		try{
+
+		//intersect own bounding box with buffer bounding box
+		if (fx+rx < 0) fx = - rx;
+		if (tx+rx > zbuffer.w) tx = zbuffer.w - rx;
+		if (fy+ry < 0) fx = -ry;
+		if (ty+ry > zbuffer.h) fy = zbuffer.h - ry;
+		if (fx >= tx) return;
+		//try{
 		for (int cy=fy; cy<ty; cy++)
 		{
 			int b = getLineIndex(cy);
 			int bo = zbuffer.getLineIndex(cy+ry)+rx;
-			for (int cx=fx; cx<tx; cx++)
-				if ((!transparent || dataVisible[b+cx]) &&
-					zbuffer.inBounds(rx+cx,ry+cy)){
+			if (!transparent) {
+				for (int cx=fx; cx<tx; cx++)
 					zbuffer.customPut(bo+cx,data[b+cx]+z);
-//					System.out.println("!");
-				}
+			} else {
+				for (int cx=fx; cx<tx; cx++)
+					if (dataVisible[b+cx])
+						zbuffer.customPut(bo+cx,data[b+cx]+z);
+			}
 		}
-		} catch (ArrayIndexOutOfBoundsException e){
+/*		} catch (ArrayIndexOutOfBoundsException e){
 			System.out.println(x+"/"+y+"/"+z+": "+h+"/"+w+"/"+tx+"/"+ty+"=>"+getLineIndex(ty-1)+" "+ data.length+" "+dataVisible.length+"  roi: "+start+" - "+stride);
 			throw e;
-		}
+		}*/
 	}
 
 
