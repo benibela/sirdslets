@@ -97,8 +97,8 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		//intersect own bounding box with buffer bounding box
 		if (fx+rx < 0) fx = - rx;
 		if (tx+rx > zbuffer.w) tx = zbuffer.w - rx;
-		if (fy+ry < 0) fx = -ry;
-		if (ty+ry > zbuffer.h) fy = zbuffer.h - ry;
+		if (fy+ry < 0) fy = -ry;
+		if (ty+ry > zbuffer.h) ty = zbuffer.h - ry;
 		if (fx >= tx) return;
 		//try{
 		for (int cy=fy; cy<ty; cy++)
