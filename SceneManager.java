@@ -15,7 +15,7 @@ public class SceneManager {
 	public enum MessageType {MESSAGE_NOTIFY, MESSAGE_WARNING, MESSAGE_ERROR, MESSAGE_FATAL};
 	int width, height;
 	int cameraX, cameraY, cameraZ;
-	private URL mCodeBase;
+	private URL mCodeBase = null;
 	private FontMetrics mFontMetrics;
 
 	public void clear(){
@@ -167,16 +167,17 @@ public class SceneManager {
 		return img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth());
 	}
 	public BufferedImage loadImage(String name){
-		return loadImage(mCodeBase, name);
-	}
-	public static BufferedImage loadImage(URL baseUrl, String name){
-		try {
-			return loadImage(new URL(baseUrl,name));
-		} catch (java.net.MalformedURLException e){
+		if (mCodeBase == null)
+			return loadImage(getClass().getResource(name));
+		else{
+			try {
+				return loadImage(new URL(mCodeBase,name));
+			} catch (java.net.MalformedURLException e){
+			}
+			return null;
 		}
-		return null;
 	}
-	public static BufferedImage loadImage(URL url){
+	private static BufferedImage loadImage(URL url){
 		BufferedImage img = null;
 		try {
 			//img = ImageIO.read(new File(fileName));
@@ -188,8 +189,12 @@ public class SceneManager {
 	}
 	public URL getFileURL(String name){
 		try {
+
 			//System.out.println(new URL(getCodeBase(),name));
-			return new URL(mCodeBase,name);
+			if (mCodeBase == null)
+				return SceneManager.class.getResource(name);
+			else
+				return new URL(mCodeBase,name);
 		} catch (Exception e){}
 		throw new IllegalArgumentException("File not found: "+name);
 		//return null;

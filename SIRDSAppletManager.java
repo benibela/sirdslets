@@ -460,7 +460,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 
 		scene.width=getSize().width;
 		scene.height=getSize().height;
-		scene.setBaseURL(getCodeBase());
+		//scene.setBaseURL(getCodeBase());
 
 
 		mGuiDoubleBuffer = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().createCompatibleImage(scene.width, scene.height);
