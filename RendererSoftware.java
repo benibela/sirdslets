@@ -41,7 +41,7 @@ public class RendererSoftware implements SIRDSRenderer{
 		mFrameNumber=0;
 	}
 	public void setSISData(int f1[], int f2[], int w, int h){
-		if (w!=ZDraw.SIRDW || h!=ZDraw.SIRDH)
+		if (w!=ZDraw.SIRDW || h<ZDraw.SIRDdefH)
 			throw new IllegalArgumentException("wrong sis data size");
 		sis1=f1;
 		sis2=(f2==null)?f1:f2;

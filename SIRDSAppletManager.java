@@ -151,9 +151,34 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 			return ZDraw.GetRandSIRDData(id.contains(mTranslator.colored()), id.contains(mTranslator.stripes()), c!=0?c:0xffffffff);
 		}
 		if (id.equals(mTranslator.black())||id.equals(mTranslator.gray())) {
-			int[] temp=new int[ZDraw.SIRDW*ZDraw.SIRDH];
+			int[] temp=new int[ZDraw.SIRDW*ZDraw.SIRDdefH];
 			Arrays.fill(temp,id.equals(mTranslator.black())?0xff000000:0xff888888);
 			return temp;
+		}
+		if (id.contains(mTranslator.confetti())){
+			int w = ZDraw.SIRDW;
+			int h = 600;
+			Random r = new Random();
+			BufferedImage temp=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
+			Graphics g = temp.getGraphics();
+			int repeat = 10000;
+			boolean color = id.contains(mTranslator.colored());
+			for (int i=1; i<=repeat; i++) {
+				float scale = (float)(1 - Math.sqrt(i*1.0f / repeat)); //create more small than large ovals
+				for (int j = 0; j<=h/w; j++) {
+					float contrast = (float)((r.nextFloat()<0.5)?r.nextFloat():(0.5+1.5*r.nextFloat()));
+					Color col;
+					if (color) col = new Color(Math.min(1,contrast*r.nextFloat()), Math.min(1,contrast*r.nextFloat()), Math.min(1,contrast*r.nextFloat()));
+					else {
+						contrast = Math.min(1, contrast * r.nextFloat());
+						col = new Color(contrast, contrast, contrast);
+					}
+					g.setColor(col);
+					g.fillOval(w-(int)(2*w*r.nextFloat()), w * j + w - (int)(2*w*r.nextFloat()), 7+(int)(w*r.nextFloat()*scale), 7+(int)(w*r.nextFloat()*scale));
+				}
+			}
+			return (new IntArrayImage(temp)).data;
+
 		}
 		return null;
 	}
@@ -161,11 +186,12 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	private void setFrameSIRD(String sird1, String sird2){
 		mFrame1SIRDId=sird1;
 		mFrame2SIRDId=sird2;
-		renderer.setSISData(singleSIRDData(sird1), singleSIRDData(sird2), ZDraw.SIRDW, ZDraw.SIRDH);
+		renderer.setSISData(singleSIRDData(sird1), singleSIRDData(sird2), ZDraw.SIRDW, ZDraw.SIRDdefH);
 		frame1SIRDChoice.setSelectedItem(sird1);
 		frame2SIRDChoice.setSelectedItem(sird2);
 	}
 
+	private ArrayList<String> images  = new ArrayList<String>();
 	private void initSIRDChoice(JComboBox c){
 		c.addItem(mTranslator.white() + " "+mTranslator.random());
 		c.addItem(mTranslator.red() + " "+ mTranslator.random());
@@ -177,9 +203,10 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		c.addItem(mTranslator.colored() + " "+ mTranslator.random());
 		c.addItem(mTranslator.white() + " "+ mTranslator.random()+ " "+mTranslator.stripes());
 		c.addItem(mTranslator.colored() + " "+ mTranslator.random()+ " "+mTranslator.stripes());
-		c.addItem("gold.png");
-		c.addItem("tiger.png");
-		c.addItem("squares.png");
+		c.addItem(mTranslator.gray() + " "+mTranslator.confetti());
+		c.addItem(mTranslator.colored() + " "+mTranslator.confetti());
+		for (String s: images)
+			c.addItem(s);
 		c.addItem(mTranslator.black());
 		c.addItem(mTranslator.gray());
 	}
@@ -264,6 +291,22 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		title.setForeground(optionPanelLabelColor);
 		optionPanel.add(title);
 		optionPanel.add(new JLabel(" "));
+
+		try{
+			BufferedReader br = new BufferedReader(new InputStreamReader(scene.getFileURL("images").openStream()));
+			String line;
+			do {
+				line = br.readLine();
+				if (line != null && line.length()>1)
+					images.add(line);
+			} while (line!=null);
+
+		} catch (Exception e){
+			images.clear();
+			images.add("squares.png");
+			images.add("rainbow.png");
+		}
+
 
 		frame1SIRDChoice = new JComboBox();
 		frame1SIRDChoice.setLightWeightPopupEnabled(false);
@@ -475,7 +518,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		renderer.init(this,scene);
 		
 
-		setFrameSIRD("squares.png","");
+		setFrameSIRD(mTranslator.colored()+" "+mTranslator.confetti(),mTranslator.colored()+" "+mTranslator.confetti());
 
 
 	}

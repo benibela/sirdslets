@@ -18,6 +18,7 @@ public class Translations {
 	public String random(){return "random";}
 	public String colored(){ return "colored";}
 	public String stripes(){ return "stripes";}
+	public String confetti(){ return "confetti"; }
 	public String white(){ return "white"; }
 	public String gray(){ return "gray"; }
 	public String black(){ return "black"; }

@@ -12,6 +12,9 @@ public class IntArrayImage{
 	public IntArrayImage(int nw, int nh){
 		setSize(nw,nh);
 	}
+	public IntArrayImage(BufferedImage img){
+		setToImageARGB(img);
+	}
 	
 	public int getLineIndex(int y)
 	{

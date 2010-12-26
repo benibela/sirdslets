@@ -134,7 +134,7 @@ public class ZDraw extends IntArrayImage
 	
 	public final static int MAXZ = 20;
 	public final static int SIRDW = 80;
-	public final static int SIRDH = 50;
+	public final static int SIRDdefH = 50;
 	
 	public static int[] GetRandSIRDData(){
 		return GetRandSIRDData(true,false,0xffffffff);
@@ -142,7 +142,7 @@ public class ZDraw extends IntArrayImage
 	
 	public static int[] GetRandSIRDData(boolean color, boolean slices, int mask)
 	{
-		int[] ans = new int[SIRDW*SIRDH];
+		int[] ans = new int[SIRDW*SIRDdefH];
 		Random r = new Random();
 		int d = (int)(Math.random()*255);
 		for (int i=0; i<ans.length; i++)
@@ -168,10 +168,10 @@ public class ZDraw extends IntArrayImage
 	}
 	
 	public static int[] GetImageSIRDData(BufferedImage img){
-		if (img==null || img.getWidth()<SIRDW || img.getHeight() < SIRDH) return GetRandSIRDData();
-		int [] data=new int[SIRDW*SIRDH];
-		img.getRGB(0, 0, SIRDW, SIRDH, data, 0, img.getWidth());
-		if (data.length!=SIRDW*SIRDH) return  GetRandSIRDData();
+		if (img==null || img.getWidth()<SIRDW || img.getHeight() < SIRDdefH) return GetRandSIRDData();
+		int [] data=new int[SIRDW*img.getHeight()];
+		img.getRGB(0, 0, SIRDW, img.getHeight(), data, 0, img.getWidth());
+		if (data.length!=SIRDW*img.getHeight()) return  GetRandSIRDData();
 		return data;
 	}
 	
@@ -188,6 +188,7 @@ public class ZDraw extends IntArrayImage
 		//int roff =  randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
 		int roff = 0;
 		int rvoff = 0;
+		int SIRDH = randdata.length / SIRDW;
 		if (randoffset) {
 			roff =  (int)(Math.random()*SIRDW);//10-(10-randoffset) % 20;//Math.abs(randdata[randoffset%rlen])%rlen;
 			rvoff =   (int)(Math.random()*SIRDH);//randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;

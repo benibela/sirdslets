@@ -16,8 +16,9 @@ public class Translations_DE extends Translations{
 	}
 	private static Translations mInstance = null;
 	public String random(){return "zufällig";}
-	public String colored(){ return "farbig";}
+	public String colored(){ return "bunt";}
 	public String stripes(){ return "stripes";}
+	public String confetti(){ return "Konfetti"; }
 	public String white(){ return "weiss"; }
 	public String gray(){ return "grau"; }
 	public String black(){ return "schwarz"; }
