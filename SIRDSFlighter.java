@@ -226,7 +226,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mShipHistory = new ArrayList<ShipInformation>();
 		mShipHistoryPos = -1;
 		mTimeWarpActive = false;
-		
+
 		updateLifeProgressBar();
 		mRemainingTimeWarps = mTimeWarpPerLevel;
 	
@@ -281,7 +281,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 				if (((Cuboid)sp).maxx>mLevelLength) mLevelLength=((Cuboid)sp).maxx;
 			
 		mLevelEnd=mScene.setZSprite("levelEnd",new ZSprite());
-		mLevelEnd.setToString((level<mLastLevel)?("Level "+(level+1)):("Game Over"),mManager.getGraphics().getFontMetrics(
+		mLevelEnd.setToString((level<mLastLevel)?("Level "+(level+1)):("You won!"),mManager.getGraphics().getFontMetrics(
 			//new Font("Arial Black",Font.BOLD,100)),0,15);
 			new Font("Arial Black",Font.BOLD,300)),0,15);
 		//mLevelEnd.rotate90R();
@@ -320,7 +320,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		long timeDelta = time - mCurTime;
 		mCurTime=time;
 
-
+		//time vortex on
 		if (mTimeWarpActive)
 		{
 			if (mCurTime - mTimeWarpLastClockFlicker > 300){
@@ -353,6 +353,10 @@ public class SIRDSFlighter implements SIRDSlet	{
 			return;
 		}
 
+		//time vortex off
+
+
+		//dead, activate time vortex
 		if (mShipData.life<mMinimalRequiredLife && mRemainingTimeWarps > 0) {
 			mRemainingTimeWarps--;			
 			mShipHistoryTravelBackPos=mShipHistoryPos;
@@ -360,6 +364,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			return;
 		}
 
+		//permanently dead
 		if (mShipData.life<mMinimalRequiredLife){
 			//DEAD
 			if (mManager.isKeyPressedOnce(KEY_SHIP_FIRE)
@@ -381,6 +386,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		if (mManager.isKeyPressed(KEY_SHIP_FIRE) || mManager.isKeyPressedChanged(KEY_SHIP_FIRE))
 			shipFire();
 
+		//physics main loop
 		if (timeDelta > 200) timeDelta = 200;
 		for (int repetition=0;repetition<timeDelta; repetition++){
 			final double acceleration=1.3;
@@ -482,6 +488,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 
 
 
+		//--------------calculate collisions shoot/geometry-------------
 		for (int i=mShoots.size()-1;i>=0;i--){
 			Cuboid c=mShoots.get(i);
 			c.maxx+=40;
@@ -493,7 +500,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			}
 			Cuboid cWallBoundingBox = c.fastClone();
 			cWallBoundingBox.minz+=3;
-			cWallBoundingBox.maxz-=2;
+			cWallBoundingBox.maxz-=3;
 			for (int j=0;j<mLevelPrimitives.size();j++)
 				if (mLevelPrimitives.get(j) instanceof Cuboid){
 					if (cWallBoundingBox.intersect(((Cuboid)mLevelPrimitives.get(j)), -20, 0)){
