@@ -449,6 +449,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 			if (mShipA.z==0) mShipData.v.z-=0.1*mShipData.v.z; //fast slowdown*/
 			mShipData.v.multiply(0.997);
 			mShipData.v.z = mShipData.v.z * 0.997;
+			if (mShipA.z == 0) mShipData.v.z = 0;
 
 			//mShipData.p.x+=1;
 			mShipData.p.add(mShipData.v.clone().multiply(0.04));
