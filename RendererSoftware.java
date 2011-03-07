@@ -73,7 +73,8 @@ public class RendererSoftware implements SIRDSRenderer{
 			renderPrimitive(sprite.getValue()); 
 
 		if (!drawSIRDS){
-			if (mDrawMode == 0) mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert); 			//heightmap mode
+			if (mDrawMode == 0) mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert);
+			else if (mDrawMode == 3) mZBuffer.drawRainbowMapTo(mSIRDPixels.data, mInvert);
 			else mZBuffer.drawAnaglyph(mSIRDPixels.data, mInvert);
 		} else {
 			if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, sis2, mRandomFlicker, mInvert);

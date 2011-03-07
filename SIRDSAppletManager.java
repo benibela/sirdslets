@@ -955,7 +955,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 				}
 			}
 		} else if (e.getKeyCode()==KeyEvent.VK_ENTER){
-			renderer.setDrawMode((renderer.getDrawMode()+1)%3);
+			renderer.setDrawMode((renderer.getDrawMode()+1)%4);
 		}
 
 		if (e.getKeyCode()>=0 && e.getKeyCode()<keyState.length){

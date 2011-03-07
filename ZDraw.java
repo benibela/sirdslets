@@ -237,6 +237,24 @@ public class ZDraw extends IntArrayImage
 			}
 		}
 	}
+	public void drawRainbowMapTo(int[] to, boolean invert)
+	{
+		int[] colorLookup= new int[MAXZ+1];
+		for (int i=0;i<=MAXZ;i++)
+			colorLookup[i] = Color.HSBtoRGB(0.5f+i*0.9f/MAXZ, 0.9f + i*0.1f/MAXZ, 0.5f + i*0.5f/MAXZ) | 0xFF000000;
+		if (invert)
+			for (int i=0;i<=MAXZ/2;i++) {
+				int temp = colorLookup[i];
+				colorLookup[i] = colorLookup[colorLookup.length-1-i];
+				colorLookup[colorLookup.length-1-i] = temp;
+			}
+		for (int y=0; y<h; y++)
+		{
+			int b = getLineIndex(y);
+			for (int x=0; x<w; x++)
+				to[b+x] = colorLookup[Math.min(MAXZ, Math.max(0,data[b+x]))];
+		}
+	}
 
 	public void drawAnaglyph(int[] to, boolean invert)
 	{
