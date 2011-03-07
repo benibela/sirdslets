@@ -518,7 +518,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		renderer.init(this,scene);
 		
 
-		setFrameSIRD(mTranslator.colored()+" "+mTranslator.confetti(),mTranslator.colored()+" "+mTranslator.confetti());
+		setFrameSIRD(mTranslator.colored()+" "+mTranslator.confetti(),"!"+mTranslator.sameAsAbove());
 
 
 	}
