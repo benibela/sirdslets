@@ -1,0 +1,2 @@
+include programs/games/SIRD
+rename programs/games/SIRD .
