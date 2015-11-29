@@ -15,6 +15,12 @@ public class Translations {
 		mInstance = instance;
 	}
 	private static Translations mInstance = null;
+
+    Translations(){
+        mSIRDSXkcd = new SIRDSxkcd();
+    }
+
+
 	public String random(){return "random";}
 	public String colored(){ return "colored";}
 	public String stripes(){ return "stripes";}
@@ -102,5 +108,16 @@ public class Translations {
 			"d,f\tdrawing radius\n" +
 			"mouse\tdraw/select height";
 	}
+
+
+    public static class SIRDSxkcd {
+        public String name() { return "SIRDSified XKCD"; }
+        public String desc() { return name(); }
+
+    }
+    private SIRDSxkcd mSIRDSXkcd;
+    public static SIRDSxkcd getSIRDSxkcd(){
+        return getInstance().mSIRDSXkcd;
+    }
 }
 

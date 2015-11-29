@@ -19,6 +19,7 @@ public class SIRDSApplets extends SIRDSAppletManager
 		if (Locale.getDefault() == Locale.GERMAN || Locale.getDefault() == Locale.GERMANY )
 			Translations.setInstance(new Translations_DE());
 		registerSIRDSlet(new SIRDSFlighter());
+		registerSIRDSlet(new SIRDSxkcd());
 		registerSIRDSlet(new AbSIRDlet());
 		registerSIRDSlet(new SIRDSFlighterEditor());
 		super.init();

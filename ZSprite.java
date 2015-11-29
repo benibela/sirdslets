@@ -72,16 +72,17 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 	}
 	
 	public void readHeightMapFrom(int[] from){
-		assert transparent;
 		//read height data
 		super.readHeightMapFrom(from);
-		//set inverse alpha channel
-		for (int y=0; y<h; y++)
-		{
-			int b = getLineIndex(y);
-			for (int x=0; x<w; x++)
-				dataVisible[b+x]=((from[b+x]&0xff000000)>>>24) > 0x80;
-		}
+        if (transparent) {
+            //set inverse alpha channel
+            for (int y=0; y<h; y++)
+            {
+                int b = getLineIndex(y);
+                for (int x=0; x<w; x++)
+                    dataVisible[b+x]=((from[b+x]&0xff000000)>>>24) > 0x80;
+            }
+        }
 	}
 	
 	public void drawTo(ZDraw zbuffer, int xo, int yo){

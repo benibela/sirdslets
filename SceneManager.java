@@ -177,7 +177,7 @@ public class SceneManager {
 			return null;
 		}
 	}
-	private static BufferedImage loadImage(URL url){
+	public static BufferedImage loadImage(URL url){
 		BufferedImage img = null;
 		try {
 			//img = ImageIO.read(new File(fileName));
