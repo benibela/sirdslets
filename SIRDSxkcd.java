@@ -6,8 +6,13 @@ import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 
 public class SIRDSxkcd implements SIRDSlet	{
@@ -34,9 +39,10 @@ public class SIRDSxkcd implements SIRDSlet	{
 	
 	final static int expectedTimePerFrame = 40;
 	
-	protected ZSprite mHoverBoard;
+	protected ZSprite mHoverBoard, mEmptyTile;
     protected Vector3d mHoverBoardV, mHoverBoardP;
     private long mCurTime;
+    private TileRetriever mTileRetriever;
 
 
 
@@ -49,6 +55,10 @@ public class SIRDSxkcd implements SIRDSlet	{
         mHoverBoardV = new Vector3d();
         mHoverBoardP = new Vector3d(512187, -549668, 0);
         mHoverBoardP = new Vector3d(511701, -550323, 0);
+
+        mEmptyTile = makeEmptyTile();
+
+        mTileRetriever = new TileRetriever(512, "http://xkcd.com/1608/");
 
     }
 
@@ -93,6 +103,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 	}
 		
 	public void stop(){
+        mTileRetriever.shutdown();
 	}
 
     public void calculateFrame(long time){
@@ -196,55 +207,25 @@ public class SIRDSxkcd implements SIRDSlet	{
 		}
 		mScene.setCameraPosition((int)(-mShipData.levelScroll), -(mScene.height-mZBufferH)/2, 0);*/
 
-        int focusX = mScene.cameraX - mScene.cameraX % 512, focusY = mScene.cameraY - mScene.cameraY % 512;
-        System.out.println(focusX+" "+focusY);
         int primitiveId = 0;
+        int focusX = mScene.cameraX - mScene.cameraX % mTileRetriever.tileSize, focusY = mScene.cameraY - mScene.cameraY % mTileRetriever.tileSize;
         for (int deltaX = 0; deltaX <= 2; deltaX++)
             for (int deltaY = -1; deltaY <= 1; deltaY++) {
-                ZSprite tile = getTile( (focusX+512*deltaX), (focusY + 512*deltaY));
-                tile.x = focusX + 512 * deltaX;
-                tile.y = focusY + 512 * deltaY;
+                ZSprite tile = mTileRetriever.getTile( (focusX+512*deltaX), (focusY + mTileRetriever.tileSize*deltaY));
+                tile.x = focusX + mTileRetriever.tileSize * deltaX;
+                tile.y = focusY + mTileRetriever.tileSize * deltaY;
                 mScene.setPrimitive(primitiveId, tile);
                 primitiveId++;
             }
+        for (int deltaX = -2; deltaX <= 2; deltaX++)
+            for (int deltaY = -2; deltaY <= 2; deltaY++)
+                mTileRetriever.prefetch( (mScene.cameraX+512*deltaX), (mScene.cameraY+ 512*deltaY));
 	}
 
 
     //World
-    protected HashMap<Long, ZSprite> mTileCache = new HashMap<Long, ZSprite>();
-    protected ArrayDeque<Long> mTileMRU = new ArrayDeque<Long>();
 
-    ZSprite getTile(int x, int y) {
-        x/=512;
-        y/=512;
-        long key = ((long)(x + (1 << 20)) << 32L) | (y+(1 << 20));
-        if (mTileCache.containsKey(key)) return mTileCache.get(key);
-        ZSprite sprite;
 
-        try {
-            System.out.println("http://xkcd.com/1608/"+x+":"+y+"+s.png");
-            BufferedImage img = SceneManager.loadImage(new URL("http://xkcd.com/1608/"+x+":"+y+"+s.png"));
-            if (img == null) sprite = emptyTile();
-            else {
-                System.out.println("http://xkcd.com/1608/"+x+":"+y+"+s.png---"+img.getWidth());
-                sprite=new ZSprite(img.getWidth(),img.getHeight());
-
-                readHeightMap(sprite, img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()));
-            }
-        } catch (MalformedURLException e) {
-            sprite = emptyTile();
-        }
-
-        mTileCache.put(key, sprite);
-
-        mTileMRU.remove(key);
-        mTileMRU.addFirst(key);
-        while (mTileMRU.size() > 150) {
-            mTileCache.remove(mTileMRU.getLast());
-            mTileMRU.removeLast();
-        }
-        return sprite;
-    }
 
     void readHeightMap(ZSprite sprite, int[] from){
         int w = sprite.w; int h = sprite.h; int[] data = sprite.data;
@@ -264,12 +245,96 @@ public class SIRDSxkcd implements SIRDSlet	{
         }
     }
 
-    ZSprite emptyTile(){
+    ZSprite makeEmptyTile(){
         ZSprite EmptyTile = new ZSprite();
         EmptyTile.transparent = true;
         EmptyTile.setSize(1,1);
         EmptyTile.dataVisible[0] = false;
         return EmptyTile;
+    }
+
+    public class TileRetriever{
+        int tileSize; String baseURL;
+        private ExecutorService pool;
+        TileRetriever(int tileSize, String baseURL) {
+            this.tileSize = tileSize;
+            this.baseURL = baseURL;
+            pool = Executors.newFixedThreadPool(8);
+        }
+
+        protected final HashMap<Key, ZSprite> mTileCache =  new HashMap<Key, ZSprite>();
+        protected ArrayDeque<Key> mTileMRU = new ArrayDeque<Key>();
+
+        private class Key{
+            int i,j;
+
+            Key (int x, int y) {
+                i = x / tileSize;
+                j = y / tileSize;
+            }
+            @Override
+            public int hashCode() {
+                return ( (i + (i >> 16)) << 16) + (j + (j >> 16));
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o instanceof Key)) return false;
+                return ((Key)o).i == i && ((Key)o).j == j;
+            }
+        }
+        ZSprite getTile(int x, int y) {
+            final Key key = new Key(x,y);
+            synchronized (mTileCache) {
+                if (mTileCache.containsKey(key)) return mTileCache.get(key);
+                else {
+                    mTileCache.put(key, mEmptyTile);
+                    pool.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            ZSprite sprite;
+
+                            try {
+                                //System.out.println(baseURL + key.i+":"+key.j+"+s.png");
+                                BufferedImage img = SceneManager.loadImage(new URL(baseURL + key.i+":"+key.j+"+s.png"));
+                                if (img == null) sprite = mEmptyTile;
+                                else {
+                                    //System.out.println(baseURL+key.i+":"+key.j+"+s.png---"+img.getWidth());
+                                    sprite=new ZSprite(img.getWidth(),img.getHeight());
+
+                                    readHeightMap(sprite, img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()));
+                                }
+                            } catch (MalformedURLException e) {
+                                sprite = mEmptyTile;
+                            }
+
+                            synchronized (mTileCache) {
+                                mTileCache.put(key, sprite);
+                            }
+
+                            synchronized (mTileMRU) {
+                                mTileMRU.remove(key);
+                                mTileMRU.addFirst(key);
+                                while (mTileMRU.size() > 255) {
+                                    synchronized (mTileCache) {
+                                        mTileCache.remove(mTileMRU.getLast());
+                                    }
+                                    mTileMRU.removeLast();
+                                }
+                            }
+                        }
+                    });
+                    return mEmptyTile;
+                }
+            }
+        }
+        void prefetch(int x, int y) {
+            getTile(x,y);
+        }
+        void shutdown(){
+            pool.shutdown();
+        }
+
     }
 
 	public String getName(){
