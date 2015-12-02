@@ -107,6 +107,16 @@ public class Vector3d implements JSONSerializable{
 	public Vector3d clone(){
 		return new Vector3d(this);
 	}
+	public Vector3d projectOnX(){
+		return new Vector3d(x, 0, 0);
+	}
+	public Vector3d projectOnY(){
+		return new Vector3d(0, y, 0);
+	}
+	public Vector3d projectOnZ(){
+		return new Vector3d(0, 0, z);
+	}
+
 	public void assign(Vector3d v){
 		x = v.x;
 		y = v.y;
@@ -124,4 +134,8 @@ public class Vector3d implements JSONSerializable{
 		z=aln.get(2).doubleValue();
 	}
 
+    @Override
+	public String toString() {
+		return "("+x+", "+y+", "+z+")";
+	}
 }

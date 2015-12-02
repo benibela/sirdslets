@@ -409,5 +409,9 @@ public class ZDraw extends IntArrayImage
 		res.setToString(text,fontMetric,minz,maxz,blur);
 		return res;
 	}
-	
+
+
+
+
+
 }

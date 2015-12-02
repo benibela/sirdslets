@@ -155,6 +155,26 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		return data[getIndex(wx-x, wy-y)];
 	}
 
+	public boolean intersectBoundaries2D(ZSprite sprite, int[] boundary) {
+		//calculate intersection rect in local coords
+		int ox = sprite.x - x;
+		int il = Math.max(0, ox);
+		int ir = Math.min(w, ox + sprite.w);
+		if (il >= ir)
+			return false;
+		int oy = sprite.y - y;
+		int it = Math.max(0, oy);
+		int ib = Math.min(h, sprite.h + oy);
+		if (it >= ib)
+			return false;
+
+		boundary[0] = il;
+		boundary[1] = it;
+		boundary[2] = ir;
+		boundary[3] = ib;
+		return true;
+	}
+
 	public boolean intersect(ZSprite sprite, int dx, int dy, boolean removeIntersectionInThis){
 		//calculate intersection rect in local coords
 		int ox = sprite.x - x + dx;
@@ -192,6 +212,7 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 		}
 		return result;
 	}
+
 
 	public Object jsonSerialize(){
 		TreeMap<String,Object> tm = new TreeMap<String,Object>();

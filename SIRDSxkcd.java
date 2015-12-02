@@ -53,8 +53,8 @@ public class SIRDSxkcd implements SIRDSlet	{
 		mZBufferYStart=(mScene.height-mZBufferH)/2;
 
         mHoverBoardV = new Vector3d();
-        mHoverBoardP = new Vector3d(512187, -549668, 0);
-        mHoverBoardP = new Vector3d(511701, -550323, 0);
+        mHoverBoardP = new Vector3d(512187 - 200, -549668, 0);
+        //mHoverBoardP = new Vector3d(511701, -550323, 0);
 
         mEmptyTile = makeEmptyTile();
 
@@ -117,70 +117,78 @@ public class SIRDSxkcd implements SIRDSlet	{
         mTileRetriever.shutdown();
 	}
 
+    long mLastJump = 0;
+    boolean readyToGo, readyToJump;
+
     public void calculateFrame(long time){
 		long timeDelta = time - mCurTime;
 		mCurTime=time;
+
+        int primitiveId = 0;
+        int focusX = mScene.cameraX - mScene.cameraX % mTileRetriever.tileSize, focusY = mScene.cameraY - mScene.cameraY % mTileRetriever.tileSize;
+        for (int deltaX = 0; deltaX <= 2; deltaX++)
+            for (int deltaY = -1; deltaY <= 1; deltaY++) {
+                ZSprite tile = mTileRetriever.getTile( (focusX+512*deltaX), (focusY + mTileRetriever.tileSize*deltaY));
+                tile.x = focusX + mTileRetriever.tileSize * deltaX;
+                tile.y = focusY + mTileRetriever.tileSize * deltaY;
+                mScene.setPrimitive(primitiveId, tile);
+                primitiveId++;
+            }
+        for (int deltaX = -2; deltaX <= 2; deltaX++)
+            for (int deltaY = -2; deltaY <= 2; deltaY++)
+                mTileRetriever.prefetch( (mScene.cameraX+512*deltaX), (mScene.cameraY+ 512*deltaY));
+
 		//---------------------keyinput------------------------
+        //approximated jump heights: up 190, collision 50
 		//physics main loop
 		if (timeDelta > 200) timeDelta = 200;
-		for (int repetition=0;repetition<timeDelta; repetition++){
-			final double acceleration=1.3;
-			final double accelerationz=0.2*acceleration/1.5;
-			Vector3d a=new Vector3d();
-			a.x-=mManager.isKeyPressed(KEY_SHIP_ACC_LEFT)?acceleration:0;
-			a.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?acceleration:0;
-			a.y-=mManager.isKeyPressed(KEY_SHIP_ACC_UP)?acceleration:0;
-			a.y+=mManager.isKeyPressed(KEY_SHIP_ACC_DOWN)?acceleration:0;
-			//mShipA.z-=(mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND3)||mManager.isKeyPressed(KEY_SHIP_ACC_DESCEND4))?accelerationz:0;
-			//mShipA.z+=(mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND2)||mManager.isKeyPressed(KEY_SHIP_ACC_ASCEND3))?accelerationz:0;
+        float tInSec = timeDelta / 1000.0f;
 
-			a.multiply(0.04);
-			
-			//-----------------move user ship----------------------
+        Vector3d a=new Vector3d();
+        a.x-=mManager.isKeyPressed(KEY_SHIP_ACC_LEFT) ?1000:0;
+        a.x+=mManager.isKeyPressed(KEY_SHIP_ACC_RIGHT)?1000:0;
+        readyToGo |= a.x != 0 && primitiveId > 1;
+        if (readyToGo)
+            a.y=1000; //gravity, only activated after first movement (or it falls in the ground, before the first tile is loaded)
+        if (time - mLastJump > 200 && readyToJump) {
+            if (mManager.isKeyPressed(KEY_SHIP_ACC_UP)) a.y -= 50000;
+            mLastJump = time;
+            readyToJump = false;
+        }
+        readyToJump |= !mManager.isKeyPressed(KEY_SHIP_ACC_UP);
 
-			mHoverBoardV.add(a);
+        boolean collisions[] = new boolean[3];
+        if (!moveBoardIfPossible(primitiveId, a, mHoverBoardV, tInSec, collisions)) {
+            if (!moveBoardIfPossible(primitiveId, a.projectOnX(), mHoverBoardV.projectOnX(), tInSec, collisions)) {
+                if (!moveBoardIfPossible(primitiveId, a.projectOnY(), mHoverBoardV.projectOnY(), tInSec, collisions)) {
+                    mHoverBoardV = new Vector3d();
+
+                    if (a.x != 0) {
+                        a.y -= 15000;
+                        if (!moveBoardIfPossible(primitiveId, a, mHoverBoardV, tInSec, collisions)) {
+
+                        }
+                    }
+
+                }
+            }
+
+        }
+        //checkCollisions(primitiveId, collisions);
+
+        System.out.println(a + " " + mHoverBoardV + " "+tInSec);
 
 
-            mHoverBoardV.multiply(0.997);
-            mHoverBoardV.z = mHoverBoardV.z * 0.997;
-			if (a.z == 0) mHoverBoardV.z = 0;
-
-            mHoverBoardP.add(mHoverBoardV.clone().multiply(0.04));/*
-			if (mShipData.p.y+mShip.h/2>mZBufferH) {
-				mShipData.p.y=mZBufferH-mShip.h/2;
-				if (mShipData.v.y>-0.01) mShipData.v.y=-0.01;
-			}
-			if (mShipData.p.z>MAXFLYZ) {
-				mShipData.p.z=MAXFLYZ;
-				if (mShipData.v.z>-0.01) mShipData.v.z=-0.01;
-			}
-			if (mShipData.p.x< -mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2) { //there are maxz unreachable pixel at the left screen side
-				mShipData.p.x=-mShipData.levelScroll+ZDraw.SIRDW+mShip.w/2;
-				if (mShipData.v.x<0.01) mShipData.v.x=0.01;
-			}
-			if (mShipData.p.x> -mShipData.levelScroll+mScene.width - mShip.w/2 - 28) {
-				mShipData.levelScroll = (int)(mScene.width - mShipData.p.x - mShip.w/2 - 28);
-			} 
-			if (mShipData.p.y<mShip.h/2) {
-				mShipData.p.y=mShip.h/2;
-				if (mShipData.v.y<0.01) mShipData.v.y=0.01;
-			}
-			if (mShipData.p.z<2) {
-				mShipData.p.z=2;
-				if (mShipData.v.z<0.01) mShipData.v.z=0.01;
-			}                                              */
-		}
-        int x = (int)Math.round(mHoverBoardP.x);
-        int y = (int)Math.round(mHoverBoardP.y);
+        // (int)Math.round(mHoverBoardP.z);
 		/*mShip.x=(int)Math.round(mShipData.p.x-mShip.w/2);
 		mShip.y=(int)Math.round(mShipData.p.y-mShip.h/2);
 		mShip.z=(int)Math.round(mShipData.p.z);*/
 
-        mScene.cameraX = x + mScene.width / 2;
-        mScene.cameraY = y + mScene.height / 2;
+        mScene.cameraX = mHoverBoard.x - mScene.width / 2;
+        mScene.cameraY = mHoverBoard.y - mScene.height / 2;
 
 
-		//--------------calculate collisions ship/geometry-------------
+
 		/*boolean coll=false;
 		for (ScenePrimitive sp: mLevelPrimitives)
 			if (sp instanceof Cuboid)
@@ -218,20 +226,57 @@ public class SIRDSxkcd implements SIRDSlet	{
 		}
 		mScene.setCameraPosition((int)(-mShipData.levelScroll), -(mScene.height-mZBufferH)/2, 0);*/
 
-        int primitiveId = 0;
-        int focusX = mScene.cameraX - mScene.cameraX % mTileRetriever.tileSize, focusY = mScene.cameraY - mScene.cameraY % mTileRetriever.tileSize;
-        for (int deltaX = 0; deltaX <= 2; deltaX++)
-            for (int deltaY = -1; deltaY <= 1; deltaY++) {
-                ZSprite tile = mTileRetriever.getTile( (focusX+512*deltaX), (focusY + mTileRetriever.tileSize*deltaY));
-                tile.x = focusX + mTileRetriever.tileSize * deltaX;
-                tile.y = focusY + mTileRetriever.tileSize * deltaY;
-                mScene.setPrimitive(primitiveId, tile);
-                primitiveId++;
-            }
-        for (int deltaX = -2; deltaX <= 2; deltaX++)
-            for (int deltaY = -2; deltaY <= 2; deltaY++)
-                mTileRetriever.prefetch( (mScene.cameraX+512*deltaX), (mScene.cameraY+ 512*deltaY));
 	}
+
+    public void checkCollisions(int tileCount, boolean topBottomOtherOut[]){
+        topBottomOtherOut[0] = false;
+        topBottomOtherOut[1] = false;
+        topBottomOtherOut[2] = false;
+        int boundary[] = new int[4];
+        for (int i=0;i<tileCount;i++) {
+            ZSprite tile = (ZSprite) mScene.getPrimitive(i);
+            if (tile.intersectBoundaries2D(mHoverBoard, boundary)) {
+                if (IntersectionUtils.boundary2DCutThresholded(3*ZDraw.MAXZ/4-1, boundary, tile))    {
+                    IntersectionUtils.boundary2DShift(boundary, tile, mHoverBoard);
+                    if (boundary[1] < mHoverBoard.h / 4) topBottomOtherOut[0] = true;
+                    else if (boundary[1] > 3 * mHoverBoard.h / 4) topBottomOtherOut[1] = true;
+                    else topBottomOtherOut[2] = true;
+                }
+            }
+        }
+    }
+
+    public boolean moveBoardIfPossible(int tileCount, Vector3d a, Vector3d vold, double tInSec, boolean[] collisions) {
+        int oldX = mHoverBoard.x, oldY = mHoverBoard.y;
+        Vector3d dragA = vold.clone().multiply(vold.length()*0.004);
+        Vector3d areal = a.clone().sub(dragA).multiply(tInSec);
+        Vector3d v = vold.clone().add(areal);
+
+        int maxV = 500;
+        if (v.x < -maxV) v.x = -maxV;
+        if (v.x > maxV) v.x = maxV;
+        if (v.y < -2000) v.y = -2000;
+        if (v.y > maxV) v.y = maxV;
+
+
+
+        Vector3d newPos = mHoverBoardP.clone().add(v.clone().multiply(tInSec));
+        mHoverBoard.x = (int)Math.round(newPos.x);
+        mHoverBoard.y = (int)Math.round(newPos.y);
+
+        checkCollisions(tileCount, collisions);
+
+        if (collisions[0] || collisions[1] || collisions[2]) {
+            mHoverBoard.x = oldX;
+            mHoverBoard.y = oldY;
+            return false;
+        } else {
+            mHoverBoardP = newPos;
+            mHoverBoardV = v;
+            return true;
+        }
+
+    }
 
 
     //World
