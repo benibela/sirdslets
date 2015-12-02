@@ -60,6 +60,17 @@ public class SIRDSxkcd implements SIRDSlet	{
 
         mTileRetriever = new TileRetriever(512, "http://xkcd.com/1608/");
 
+        //System.out.println(baseURL + key.i+":"+key.j+"+s.png");
+        //BufferedImage img = SceneManager.loadImage(new URL( "http://xkcd.com/1608/all-four.png"));
+        mHoverBoard = mScene.createZSprite("xkcd/allfour.png");
+                //new ZSprite(img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()), img.getWidth(),img.getHeight());
+        mHoverBoard.w = mHoverBoard.w / 4;
+        mHoverBoard.z = ZDraw.MAXZ/2;
+        mScene.setPrimitive("board", mHoverBoard);
+            //    readHeightMap(sprite, img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()));
+
+        readyToGo = false;
+        readyToJump = true;
     }
 
              /*
