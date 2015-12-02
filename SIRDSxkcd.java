@@ -359,6 +359,11 @@ public class SIRDSxkcd implements SIRDSlet	{
                                     sprite=new ZSprite(img.getWidth(),img.getHeight());
 
                                     readHeightMap(sprite, img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()));
+
+									//need to blur it, or there are hair thin non-passable lines around passable areas
+									float factors[] = {0.25f, 0.25f};
+									sprite.transformLinearHorizontal(0xffff, factors, 0.5f, factors);
+									sprite.transformLinearVertical(0xffff, factors, 0.5f, factors);
                                 }
                             } catch (MalformedURLException e) {
                                 sprite = mEmptyTile;

@@ -215,7 +215,8 @@ public class IntArrayImage{
 		long low = i & 0xffff;
 		return (high << 16) | low;
 	}
-	
+
+	//todo: why does it ignore the factor[0] values?
 	public void transformLinearHorizontal(int mask, float[] factorsLeft, float factorMid, float[] factorsRight){
 		int sizeL=factorsLeft.length-1;
 		int sizeR=factorsRight.length-1;
