@@ -67,10 +67,7 @@ public class RendererSoftware implements SIRDSRenderer{
 		boolean drawSIRDS=(mDrawMode == 1) && sis1!=null && sis2!=null;
 		mZBuffer.clear();
 
-		for (ScenePrimitive prim: mScene.primitives)
-			renderPrimitive(prim);
-		for (Map.Entry<String,ScenePrimitive> sprite: mScene.namedPrimitives.entrySet())
-			renderPrimitive(sprite.getValue()); 
+		renderPrimitive(mScene);
 
 		if (!drawSIRDS){
 			if (mDrawMode == 0) mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert);

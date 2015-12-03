@@ -70,6 +70,18 @@ public class Vector3i implements JSONSerializable{
 	public int lengthSqr(){
 		return x*x+y*y+z*z;
 	}
+	public Vector3i min(final Vector3i v){
+		x = Math.min(x, v.x);
+		y = Math.min(y, v.y);
+		z = Math.min(z, v.z);
+		return this;
+	}
+	public Vector3i max(final Vector3i v){
+		x = Math.max(x, v.x);
+		y = Math.max(y, v.y);
+		z = Math.max(z, v.z);
+		return this;
+	}
 	public double length(){
 		return Math.sqrt(x*x+y*y+z*z);
 	}

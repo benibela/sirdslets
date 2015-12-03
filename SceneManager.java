@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import javax.imageio.ImageIO;
 
-public class SceneManager {
+public class SceneManager extends SceneObjectGroup {
 	public enum MessageType {MESSAGE_NOTIFY, MESSAGE_WARNING, MESSAGE_ERROR, MESSAGE_FATAL};
 	int width, height;
 	int cameraX, cameraY, cameraZ;
@@ -19,12 +19,11 @@ public class SceneManager {
 	private FontMetrics mFontMetrics;
 
 	public void clear(){
+		super.clear();
 		cameraX=0;
 		cameraY=0;
 		cameraZ=0;
 //		mZBuffer.clear();
-		primitives.clear();
-		namedPrimitives.clear();
 		/*Iterator<String> it = namedPrimitives.keySet().iterator();
 		while (it.hasNext())
 			if (!it.next().startsWith("~"))
@@ -66,53 +65,6 @@ public class SceneManager {
 
 	public void setBaseFontMetric(FontMetrics fontMetrics){
 		mFontMetrics=fontMetrics;
-	}
-
-//==================In-Scene Objects=============================
-	/*protected*/ public ArrayList<ScenePrimitive> primitives = new ArrayList<ScenePrimitive>();
-	/*protected*/ public TreeMap<String,ScenePrimitive> namedPrimitives = new TreeMap<String,ScenePrimitive>();
-
-//Base
-	public ScenePrimitive getPrimitive(int id){
-		return primitives.get(id);
-
-	}
-	public ScenePrimitive getPrimitive(String id){
-		return namedPrimitives.get(id);
-	}
-	public void setPrimitive(int id, ScenePrimitive p){
-		if (id==primitives.size()) primitives.add(p);
-		else primitives.set(id, p);
-	}
-	public void setPrimitive(String id, ScenePrimitive p){
-		namedPrimitives.put(id,p);
-	}
-	public void removePrimitive(ScenePrimitive p){
-		primitives.remove(p);
-	}
-
-
-//Utilityfunctions
-	void addPrimitive(ScenePrimitive p) {
-		setPrimitive(primitives.size(), p);
-	}
-	public ZSprite getZSprite(int id){
-		ScenePrimitive p=getPrimitive(id);
-		if (p instanceof ZSprite) return (ZSprite)p;
-		return null;
-	}
-	public ZSprite getZSprite(String id){
-		ScenePrimitive p=getPrimitive(id);
-		if (p instanceof ZSprite) return (ZSprite)p;
-		return null;
-	}
-	public ZSprite setZSprite(String id, ZSprite s){
-		setPrimitive(id, s);
-		return s;
-	}
-	public ZSprite setZSprite(int id, ZSprite s){
-		setPrimitive(id, s);
-		return s;
 	}
 
 
@@ -182,7 +134,7 @@ public class SceneManager {
 		try {
 			//img = ImageIO.read(new File(fileName));
 			img = ImageIO.read(url);
-			//URL url = new URL(getCodeBase(), "strawberry.jpg");
+				//URL url = new URL(getCodeBase(), "strawberry.jpg");
 		} catch (IOException e) {
 		}
 		return img;
