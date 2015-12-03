@@ -214,6 +214,31 @@ public class ZSprite extends ZDraw implements ScenePrimitive, JSONSerializable{
 	}
 
 
+	public int minZ(){
+		assert transparent;
+		int res = Integer.MAX_VALUE;
+		for (int y=0; y<h; y++)
+		{
+			int b = getLineIndex(y);
+			for (int x=0; x<w; x++)
+				if (dataVisible[b+x])
+					res = Math.min(res, data[b+x]);
+		}
+		return res;
+	}
+	public int maxZ(){
+		assert transparent;
+		int res = Integer.MIN_VALUE;
+		for (int y=0; y<h; y++)
+		{
+			int b = getLineIndex(y);
+			for (int x=0; x<w; x++)
+				if (dataVisible[b+x])
+					res = Math.max(res, data[b+x]);
+		}
+		return res;
+	}
+
 	public Object jsonSerialize(){
 		TreeMap<String,Object> tm = new TreeMap<String,Object>();
 		tm.put("type", "ZSprite");

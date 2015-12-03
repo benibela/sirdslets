@@ -45,6 +45,8 @@ public class SIRDSxkcd implements SIRDSlet	{
     private TileRetriever mTileRetriever;
 	private ZSprite mBaseCoin;
 	private SceneObjectGroup mTiles, mCoins;
+	private float mCoinZ, mCoinZDir;
+	private float COIN_MIN_Z, COIN_MAX_Z, COIN_SPEED = 3;
 
 
 
@@ -67,11 +69,19 @@ public class SIRDSxkcd implements SIRDSlet	{
 		mBaseCoin = mScene.createZSprite("xkcd/coin.png");
         mHoverBoard = mScene.createZSprite("xkcd/allfour.png");
 
+		COIN_MAX_Z = ZDraw.MAXZ - mBaseCoin.maxZ();
+		COIN_MIN_Z = ZDraw.MAXZ / 4 - mBaseCoin.minZ();
+
+				System.out.println(mBaseCoin.minZ() + " " + mBaseCoin.maxZ());
+
+		mCoinZ = (COIN_MIN_Z+COIN_MAX_Z)/2;
+		mCoinZDir = 1;
+
 		mTiles = new SceneObjectGroup();
 		mCoins = new SceneObjectGroup();
 		for (int i=0;i<coins.length;i+=2){
 			ZSprite coin = mBaseCoin.fastClone();
-			coin.moveTo(coins[i], coins[i+1], ZDraw.MAXZ/2);
+			coin.moveTo(coins[i], coins[i+1], (int) mCoinZ);
 			mCoins.setPrimitive(i/2, coin);
 		}
 
@@ -86,6 +96,7 @@ public class SIRDSxkcd implements SIRDSlet	{
         mHoverBoard.w = mHoverBoard.w / 4;
         mHoverBoard.z = ZDraw.MAXZ/2;
             //    readHeightMap(sprite, img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()));
+
 
         readyToGo = false;
         readyToJump = true;
@@ -153,6 +164,14 @@ public class SIRDSxkcd implements SIRDSlet	{
             }
 
         }
+
+		if (mCoinZ < COIN_MIN_Z && mCoinZDir < 0 ) mCoinZDir = 1;
+		else if (mCoinZ > COIN_MAX_Z && mCoinZDir > 0 ) mCoinZDir = -1;
+		mCoinZ += tInSec * mCoinZDir * COIN_SPEED;
+
+		for (ScenePrimitive prim: mCoins.primitives)
+			((ZSprite)prim).z = (int) mCoinZ;
+
         //checkCollisions(primitiveId, collisions);
 
         //System.out.println(a + " " + mHoverBoardV + " "+tInSec);
