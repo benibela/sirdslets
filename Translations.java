@@ -113,6 +113,7 @@ public class Translations {
     public static class SIRDSxkcd {
         public String name() { return "SIRDSified XKCD"; }
         public String desc() { return name(); }
+		public String keys() { return "Arrow keys"; }
 
     }
     private SIRDSxkcd mSIRDSXkcd;

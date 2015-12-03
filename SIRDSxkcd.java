@@ -43,6 +43,8 @@ public class SIRDSxkcd implements SIRDSlet	{
     protected Vector3d mHoverBoardV, mHoverBoardP;
     private long mCurTime;
     private TileRetriever mTileRetriever;
+	private ZSprite mBaseCoin;
+	private SceneObjectGroup mTiles, mCoins;
 
 
 
@@ -62,56 +64,33 @@ public class SIRDSxkcd implements SIRDSlet	{
 
         //System.out.println(baseURL + key.i+":"+key.j+"+s.png");
         //BufferedImage img = SceneManager.loadImage(new URL( "http://xkcd.com/1608/all-four.png"));
+		mBaseCoin = mScene.createZSprite("xkcd/coin.png");
         mHoverBoard = mScene.createZSprite("xkcd/allfour.png");
+
+		mTiles = new SceneObjectGroup();
+		mCoins = new SceneObjectGroup();
+		for (int i=0;i<coins.length;i+=2){
+			ZSprite coin = mBaseCoin.fastClone();
+			coin.moveTo(coins[i], coins[i+1], ZDraw.MAXZ/2);
+			mCoins.setPrimitive(i/2, coin);
+		}
+
+
+		mManager.suspendRendering();
+		mScene.clear();
+		mScene.setPrimitive(0, mTiles);
+		mScene.setPrimitive("board", mHoverBoard);
+		mScene.setPrimitive("coins", mCoins);
+		mManager.resumeRendering();
                 //new ZSprite(img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()), img.getWidth(),img.getHeight());
         mHoverBoard.w = mHoverBoard.w / 4;
         mHoverBoard.z = ZDraw.MAXZ/2;
-        mScene.setPrimitive("board", mHoverBoard);
             //    readHeightMap(sprite, img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()));
 
         readyToGo = false;
         readyToJump = true;
     }
 
-             /*
-		mBaseShip=mScene.createZSprite("flighter/ship.png");
-		mInitialLife=0;
-		for (int y=0;y<mBaseShip.h;y++){
-			int b=mBaseShip.getLineIndex(y);
-			for (int x=0;x<mBaseShip.w;x++)
-				if (mBaseShip.dataVisible[b+x]) mInitialLife+=1;
-		}
-		
-		mRandom = new Random();
-
-		setDifficulty(option);
-		mClockSymbols = new ArrayList<Floater>(mTimeWarpPerLevel);
-		for (int i=0;i<mTimeWarpPerLevel;i++){
-			Floater f = mScene.createFloater("flighter/clock.png");
-			f.x=7+25*i;
-			f.y=20;
-			f.z=ZDraw.MAXZ/2;
-			mClockSymbols.add(f);
-		}                                           */
-
-	protected void init(){
-		mManager.suspendRendering();
-		mScene.clear();
-		mScene.removeFloater("border1");
-		mScene.removeFloater("border2");
-		Floater border = new Floater(mScene.width,2);
-		for (int i=0;i<border.data.length;i++) border.data[i] = 0xff888888;
-		border.y = mZBufferYStart;
-		mScene.setFloater("border1",border);
-		border = border.fastClone();
-		border.y = mZBufferYStart + mZBufferH;
-		mScene.setFloater("border2", border);
-
-		//mLevelCuboids.add(new Cuboid(400,530,20,150,5,15));
-		//mLevelCuboids.add(new HoledCuboid(500,670,200,400,0,20, 250, 350, 5, 15));
-		mManager.resumeRendering();
-		
-	}
 		
 	public void stop(){
         mTileRetriever.shutdown();
@@ -131,7 +110,7 @@ public class SIRDSxkcd implements SIRDSlet	{
                 ZSprite tile = mTileRetriever.getTile( (focusX+512*deltaX), (focusY + mTileRetriever.tileSize*deltaY));
                 tile.x = focusX + mTileRetriever.tileSize * deltaX;
                 tile.y = focusY + mTileRetriever.tileSize * deltaY;
-                mScene.setPrimitive(primitiveId, tile);
+                mTiles.setPrimitive(primitiveId, tile);
                 primitiveId++;
             }
         for (int deltaX = -2; deltaX <= 2; deltaX++)
@@ -176,7 +155,7 @@ public class SIRDSxkcd implements SIRDSlet	{
         }
         //checkCollisions(primitiveId, collisions);
 
-        System.out.println(a + " " + mHoverBoardV + " "+tInSec);
+        //System.out.println(a + " " + mHoverBoardV + " "+tInSec);
 
 
         // (int)Math.round(mHoverBoardP.z);
@@ -186,7 +165,6 @@ public class SIRDSxkcd implements SIRDSlet	{
 
         mScene.cameraX = mHoverBoard.x - mScene.width / 2;
         mScene.cameraY = mHoverBoard.y - mScene.height / 2;
-
 
 
 		/*boolean coll=false;
@@ -234,7 +212,7 @@ public class SIRDSxkcd implements SIRDSlet	{
         topBottomOtherOut[2] = false;
         int boundary[] = new int[4];
         for (int i=0;i<tileCount;i++) {
-            ZSprite tile = (ZSprite) mScene.getPrimitive(i);
+            ZSprite tile = (ZSprite) mTiles.getPrimitive(i);
             if (tile.intersectBoundaries2D(mHoverBoard, boundary)) {
                 if (IntersectionUtils.boundary2DCutThresholded(3*ZDraw.MAXZ/4-1, boundary, tile))    {
                     IntersectionUtils.boundary2DShift(boundary, tile, mHoverBoard);
@@ -396,7 +374,11 @@ public class SIRDSxkcd implements SIRDSlet	{
             pool.shutdown();
         }
 
+
     }
+
+	//from http://1101b.com/xkcd1608/
+	private int[] coins = { 537027, -560249,     525689, -560616,     526077, -560616,     526164, -559291,     531494, -559530,     531903, -559554,     532170, -560864,     555130, -562404,     503224, -552394,     503522, -551049,     542481, -560037,     542706, -559642,     550773, -560041,     553076, -567112,     553103, -567151,     553132, -567183,     553173, -565356,     553208, -567184,     553288, -567149,     553329, -567108,     554243, -565849,     554243, -565780,     557912, -558137,     526693, -560208,     526995, -559135,     527086, -559782,     528028, -561056,     528198, -560225,     527061, -557254,     483600, -551975,     483667, -551977,     553345, -563807,     519636, -549096,     522049, -553195,     490124, -554986,     552820, -560057,     520607, -549047,     521392, -549021,     538150, -550895,     560567, -549975,     528618, -549429,     553737, -550104,     529664, -558476,     556369, -556826,     523458, -549103,     548206, -561787,     548271, -561787,     542941, -562344,     475207, -553683,     475257, -553684,     475313, -553684,     475367, -553680,     518169, -560337,     519089, -561130,     519929, -559544,     525306, -561659,     535582, -561307,     535875, -562506,     535900, -563088,     534153, -559619,     508250, -567578,     551586, -563946,     552593, -563797,     486608, -554809,     516591, -560321,     517846, -559181,     517968, -559859,     518041, -561062,     548482, -549800,     546744, -559592,     567063, -550422,     567065, -550503,     567086, -550464,     567086, -550540,     567111, -550503,     567111, -550422,     567130, -550540,     567134, -550464,     567152, -550503,     567154, -550422,     539260, -562964,     540037, -562347,     540302, -562977,     540380, -562347,     558132, -563858,     507154, -568861,     541755, -563024,     542595, -562588,     542595, -562506,     518682, -551658,     519441, -552229,     530791, -558938,     531482, -558698,     479534, -554932,     501990, -549107,     481857, -554526,     482009, -554496,     539605, -558914,     542768, -564500,     543822, -563314,     544521, -564725,     544620, -563890,     512082, -549750,     512093, -549901,     512099, -550062,     512207, -549881,     512209, -550222,     512217, -549740,     512223, -549647,     512258, -549740,     512272, -550041,     512296, -549739,     512323, -549883,     512348, -550214,     512349, -549642,     512385, -549886,     512396, -549601,     512414, -550061,     512417, -549788,     549232, -565175,     549831, -563260,     550487, -564557,     477754, -554489,     522741, -551458,     497597, -551742,     525583, -549247,     547911, -560431,     492147, -553606,     556845, -567091,     523816, -560628,     524078, -560628,     524079, -560382,     552105, -568488,     527039, -549219,     528075, -549711,     537789, -558007,     539524, -559910,     540329, -560393,     483549, -549417,     485094, -549147,     551295, -565285,     551501, -566387,     551546, -566765,     552221, -566176,     523748, -561433,     523778, -561435,     523810, -561437,     547918, -555114,     548026, -556862,     541735, -559053,     541844, -557595,     542018, -558003,     542611, -557542,     541203, -563852,     541641, -563852,     542076, -563852,     545090, -561997,     545524, -562339,     546312, -562840,     546312, -562732,     546600, -562845,     546607, -562732,     513108, -560669,     513738, -559677,     549508, -558811,     549843, -558016,     550152, -558016,     528673, -559748,     529300, -560287 };
 
 	public String getName(){
 		return Translations.getSIRDSxkcd().name();
@@ -405,7 +387,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 		return Translations.getSIRDSxkcd().desc();
 	}
 	public String getKeys(){
-		return Translations.getInstance().SIRDSFlighterKeys();
+		return Translations.getSIRDSxkcd().keys();
 	}
 	public String[] getPossibleOptions(){
 		return new String[]{};//Translations.getInstance().SIRDSFlighterVeryEasy(),Translations.getInstance().SIRDSFlighterEasy(),Translations.getInstance().SIRDSFlighterNormal(),Translations.getInstance().SIRDSFlighterHard(),Translations.getInstance().SIRDSFlighterImpossible()};
