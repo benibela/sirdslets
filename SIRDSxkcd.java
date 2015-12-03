@@ -47,6 +47,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 	private SceneObjectGroup mTiles, mCoins;
 	private float mCoinZ, mCoinZDir;
 	private float COIN_MIN_Z, COIN_MAX_Z, COIN_SPEED = 3;
+	private int mFoundCoins = 0;
 
 
 
@@ -71,8 +72,6 @@ public class SIRDSxkcd implements SIRDSlet	{
 
 		COIN_MAX_Z = ZDraw.MAXZ - mBaseCoin.maxZ();
 		COIN_MIN_Z = ZDraw.MAXZ / 4 - mBaseCoin.minZ();
-
-				System.out.println(mBaseCoin.minZ() + " " + mBaseCoin.maxZ());
 
 		mCoinZ = (COIN_MIN_Z+COIN_MAX_Z)/2;
 		mCoinZDir = 1;
@@ -169,8 +168,18 @@ public class SIRDSxkcd implements SIRDSlet	{
 		else if (mCoinZ > COIN_MAX_Z && mCoinZDir > 0 ) mCoinZDir = -1;
 		mCoinZ += tInSec * mCoinZDir * COIN_SPEED;
 
-		for (ScenePrimitive prim: mCoins.primitives)
-			((ZSprite)prim).z = (int) mCoinZ;
+		for (int i = mCoins.primitives.size()-1; i >= 0; i--) {
+			ZSprite prim = (ZSprite) mCoins.primitives.get(i);
+			prim.z = (int) mCoinZ;
+			if (prim.intersect(mHoverBoard,0,0,false)) {
+				mFoundCoins++;
+				mCoins.primitives.remove(i);
+				//Floater floater = mScene.setFloaterText("");
+				//floater.setTim
+				mScene.showFloaterMessage(mFoundCoins+ " coins!").z = ZDraw.MAXZ/2;
+			}
+		}
+
 
         //checkCollisions(primitiveId, collisions);
 

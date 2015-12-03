@@ -176,10 +176,10 @@ public class SceneManager extends SceneObjectGroup {
 	}
 
 
-	public void showFloaterMessage(String message){
-		showFloaterMessage(message, MessageType.MESSAGE_NOTIFY);
+	public Floater showFloaterMessage(String message){
+		return showFloaterMessage(message, MessageType.MESSAGE_NOTIFY);
 	}
-	public void showFloaterMessage(String message, MessageType type){
+	public Floater showFloaterMessage(String message, MessageType type){
 		TimedFloater f = new TimedFloater();
 		int color=0xffddddcc;
 		if (type == MessageType.MESSAGE_ERROR || type==MessageType.MESSAGE_FATAL) color=0xffff0000;
@@ -187,11 +187,12 @@ public class SceneManager extends SceneObjectGroup {
 		f.mergeColor(color);
 		f.y=(height-f.h)/2;
 		f.timetolive=5*1000;
-		setFloater("~message",f);
-
+		return setFloater("~message",f);
+		      /*
 		if (!false){
 			System.out.println(type+": "+message);
 		}
+		*/
 	}
 
 
