@@ -35,6 +35,12 @@ public class ZSpriteRepeater implements ScenePrimitive, JSONSerializable{
 				sprite.drawTo(zbuffer, xo + rx*sprite.w, yo + ry * sprite.h);
 	}
 
+	public void drawTo(ZDraw zbuffer, ZDraw colorMap, int xo, int yo){
+		//	System.out.println("print to: " +x+"/"+y+" size: "+w+":"+h);
+		for (int rx = 0; rx < repx; rx++ )
+			for (int ry = 0; ry < repy; ry++ )
+				sprite.drawTo(zbuffer, colorMap, xo + rx*sprite.w, yo + ry * sprite.h);
+	}
 
 
 	public Vector3i centerI(){

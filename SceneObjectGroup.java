@@ -65,6 +65,14 @@ public class SceneObjectGroup implements ScenePrimitive{
 	}
 
 	@Override
+	public void drawTo(ZDraw map, ZDraw colorMap, int dx, int dy) {
+		for (ScenePrimitive prim: primitives)
+			prim.drawTo(map, colorMap, dx, dy);
+		for (Map.Entry<String,ScenePrimitive> sprite: namedPrimitives.entrySet())
+			(sprite.getValue()).drawTo(map, colorMap, dx, dy);
+	}
+
+	@Override
 	public Vector3i centerI() {
 		Vector3i res = new Vector3i();
 		for (ScenePrimitive prim: primitives)

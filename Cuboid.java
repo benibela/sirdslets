@@ -77,6 +77,13 @@ public class Cuboid implements ScenePrimitive, JSONSerializable{
 			for (int x=ttx; x<tx; x++) map.customPut(b+x, (deltaZ*(nmaxx-x))/perspectiveOffset+minz);
 		}
 	}
+
+	@Override
+	public void drawTo(ZDraw map, ZDraw colorMap, int dx, int dy) {
+		drawTo(map, dx, dy);
+		//todo: clear color
+	}
+
 	public boolean intersect(ZSprite sprite, int dx, int dy){
 		return intersect(sprite, dx, dy, false);
 	}

@@ -8,7 +8,7 @@ public class RendererSoftware implements SIRDSRenderer{
 	private Component mParent;
 	private SceneManager mScene;
 	private Image mBackBuffer;
-	private ZDraw mZBuffer;//, mZBuffer2;
+	private ZDraw mZBuffer, mColorBuffer;//, mZBuffer2;
 	private IntArrayImage mSIRDPixels;
 	private MemoryImageSource mSIRDImage;
 
@@ -17,6 +17,7 @@ public class RendererSoftware implements SIRDSRenderer{
 
 	int sis1[];
 	int sis2[];
+	int sisTemp[];
 
 	private int mFrameNumber;
 
@@ -37,14 +38,32 @@ public class RendererSoftware implements SIRDSRenderer{
 
 		mZBuffer = new ZDraw(mScene.width, mScene.height);
 		mZBuffer.clear();
+		mColorBuffer = new ZDraw(mScene.width, mScene.height);
+		mColorBuffer.clear();
 
 		mFrameNumber=0;
+	}
+	public int[] enlarge(int old[], int copies){
+	 	int len = old.length;
+		int[] result = new int[len*copies];
+		for (int c=0;c<copies;c++)
+			for (int i=0;i<len;i++)
+				result[c*len + i] = old[i];
+		return result;
 	}
 	public void setSISData(int f1[], int f2[], int w, int h){
 		if (w!=ZDraw.SIRDW || h<ZDraw.SIRDdefH)
 			throw new IllegalArgumentException("wrong sis data size");
+		if (f1 == null) return;
 		sis1=f1;
 		sis2=(f2==null)?f1:f2;
+		System.out.println("ß?");
+		System.out.println(sis1);
+		if (h < mScene.height) {
+			sis1 = enlarge(sis1, (mScene.height + h-1) / h);
+			sis2 = enlarge(sis2, (mScene.height + h-1) / h);
+		}
+		sisTemp = new int[Math.max(sis1.length, sis2.length)];
 	}
 	public void setRandomMode(boolean randomFlicker){
 		mRandomFlicker=randomFlicker;
@@ -61,11 +80,13 @@ public class RendererSoftware implements SIRDSRenderer{
 
 
 	private void renderPrimitive(ScenePrimitive p){
-		p.drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
+		//p.drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
+		p.drawTo(mZBuffer, mColorBuffer, -mScene.cameraX, -mScene.cameraY);
 	}
 	public void renderFrame(){
 		boolean drawSIRDS=(mDrawMode == 1) && sis1!=null && sis2!=null;
 		mZBuffer.clear();
+		mColorBuffer.clear();
 
 		renderPrimitive(mScene);
 
@@ -74,8 +95,10 @@ public class RendererSoftware implements SIRDSRenderer{
 			else if (mDrawMode == 3) mZBuffer.drawRainbowMapTo(mSIRDPixels.data, mInvert);
 			else mZBuffer.drawAnaglyph(mSIRDPixels.data, mInvert);
 		} else {
-			if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, sis2, mRandomFlicker, mInvert);
-			else mZBuffer.DrawSIRD(mSIRDPixels.data, sis1, mRandomFlicker, mInvert);
+			/*if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, sis2, mRandomFlicker, mInvert);
+			else mZBuffer.DrawSIRD(mSIRDPixels.data, sis1, mRandomFlicker, mInvert);*/
+			if ((mFrameNumber &1)!=0) mZBuffer.DrawColoredSIRD(mSIRDPixels.data, mColorBuffer.data, sis2, sisTemp, mRandomFlicker, mInvert);
+			else mZBuffer.DrawColoredSIRD(mSIRDPixels.data, mColorBuffer.data, sis1, sisTemp, mRandomFlicker, mInvert);
 		}
 	/*
 		if (mUseZBuffer2) {

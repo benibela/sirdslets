@@ -46,12 +46,13 @@ public class SIRDSxkcd implements SIRDSlet	{
 	private ZSprite mBaseCoin;
 	private SceneObjectGroup mTiles, mCoins;
 	private float mCoinZ, mCoinZDir;
-	private float COIN_MIN_Z, COIN_MAX_Z, COIN_SPEED = 3;
+	private float COIN_MIN_Z, COIN_MAX_Z, COIN_SPEED = 10;
+	private int COIN_LOWEST_Z;
 	private int mFoundCoins = 0;
+	private Floater mBaseCoinColored;
 
 
-
-    public void start(Object manager, int option){
+	public void start(Object manager, int option){
 		mManager=(SIRDSAppletManager)manager;
 		mScene=mManager.getSceneManager();
 
@@ -68,13 +69,17 @@ public class SIRDSxkcd implements SIRDSlet	{
         //System.out.println(baseURL + key.i+":"+key.j+"+s.png");
         //BufferedImage img = SceneManager.loadImage(new URL( "http://xkcd.com/1608/all-four.png"));
 		mBaseCoin = mScene.createZSprite("xkcd/coin.png");
+		mBaseCoin.color = mScene.loadImageData("xkcd/coincolored.png");
         mHoverBoard = mScene.createZSprite("xkcd/allfour.png");
 
-		COIN_MAX_Z = ZDraw.MAXZ - mBaseCoin.maxZ();
-		COIN_MIN_Z = ZDraw.MAXZ / 4 - mBaseCoin.minZ();
+		COIN_LOWEST_Z = mBaseCoin.minZ();
+		COIN_MAX_Z = ZDraw.MAXZ - mBaseCoin.maxZ() + 1;
+		COIN_MIN_Z = ZDraw.MAXZ / 4 - COIN_LOWEST_Z;
 
 		mCoinZ = (COIN_MIN_Z+COIN_MAX_Z)/2;
 		mCoinZDir = 1;
+
+		mBaseCoinColored = mScene.createFloater("xkcd/coincolored.png");
 
 		mTiles = new SceneObjectGroup();
 		mCoins = new SceneObjectGroup();
@@ -90,6 +95,8 @@ public class SIRDSxkcd implements SIRDSlet	{
 		mScene.setPrimitive(0, mTiles);
 		mScene.setPrimitive("board", mHoverBoard);
 		mScene.setPrimitive("coins", mCoins);
+		mScene.setFloater(0, mBaseCoinColored);
+		mBaseCoinColored.visible = false;
 		mManager.resumeRendering();
                 //new ZSprite(img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()), img.getWidth(),img.getHeight());
         mHoverBoard.w = mHoverBoard.w / 4;
@@ -177,9 +184,17 @@ public class SIRDSxkcd implements SIRDSlet	{
 				//Floater floater = mScene.setFloaterText("");
 				//floater.setTim
 				mScene.showFloaterMessage(mFoundCoins+ " coins!").z = ZDraw.MAXZ/2;
+			} else  if (i == 102 && prim.x - mScene.cameraX > 0 && prim.y - mScene.cameraY > 0
+					&& prim.x - mScene.cameraX < mScene.width && prim.y - mScene.cameraY < mScene.height) {
+				mBaseCoinColored.visible = true;
+				mBaseCoinColored.x = prim.x - mScene.cameraX;
+				mBaseCoinColored.y = prim.y - mScene.cameraY;
+				mBaseCoinColored.z = prim.z + (int)COIN_LOWEST_Z;
 			}
 		}
 
+		ZSprite prim = (ZSprite) mCoins.primitives.get(102);
+		System.out.println((-mScene.cameraX +prim.x) + " "+(-mScene.cameraY +prim.y)+ " "+prim.y);
 
         //checkCollisions(primitiveId, collisions);
 

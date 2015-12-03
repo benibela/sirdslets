@@ -182,14 +182,12 @@ public class ZDraw extends IntArrayImage
 	//draw a SIRDS image of this height map into 'to'
 	//NOTE: 'start' must be 0, 'stride' must equal w, and this
 	//should be exactly the same as 'to'
-	public void DrawSIRD(int[] to, int[] randdata, boolean randoffset, boolean invert)
+	public void DrawSIRD(int[] to, int[] randdata, boolean randomoffset, boolean invert)
 	{
-		int rlen = randdata.length;
-		//int roff =  randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
-		int roff = 0;
-		int rvoff = 0;
 		int SIRDH = randdata.length / SIRDW;
-		if (randoffset) {
+		int rlen = randdata.length;
+		int roff = 0, rvoff = 0;
+		if (randomoffset) {
 			roff =  (int)(Math.random()*SIRDW);//10-(10-randoffset) % 20;//Math.abs(randdata[randoffset%rlen])%rlen;
 			rvoff =   (int)(Math.random()*SIRDH);//randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
 			roff=Math.abs(roff)%rlen;
@@ -207,15 +205,73 @@ public class ZDraw extends IntArrayImage
 			}
 			if (!invert){
 				for (x=SIRDW; x<w; x++)
-					to[b+x] = to[b+x-SIRDW+data[b+x]];			
+					to[b+x] = to[b+x-SIRDW+data[b+x]];
 			} else
 				for (x=SIRDW; x<w; x++)
-					to[b+x] = to[b+x-SIRDW+ZDraw.MAXZ-data[b+x]];			
-			
+					to[b+x] = to[b+x-SIRDW+ZDraw.MAXZ-data[b+x]];
+
 		}
 	}
-	
-	
+
+	//draw a SIRDS image of this height map into 'to'
+	//NOTE: 'start' must be 0, 'stride' must equal w, and this
+	//should be exactly the same as 'to'
+	public void DrawColoredSIRD(int[] to, int[] color, int[] randdata, int[] colordatabuffer, boolean randomoffset, boolean invert)
+	{
+		int SIRDH = randdata.length / SIRDW;
+		int rlen = randdata.length;
+		int roff = 0, rvoff = 0;
+		if (randomoffset) {
+			roff =  (int)(Math.random()*SIRDW);//10-(10-randoffset) % 20;//Math.abs(randdata[randoffset%rlen])%rlen;
+			rvoff =   (int)(Math.random()*SIRDH);//randoffset % 4;//Math.abs(randdata[randoffset%rlen])%rlen;
+			roff=Math.abs(roff)%rlen;
+			rvoff=Math.abs(rvoff)%rlen;
+		}
+
+		for (int i=0;i<rlen;i++) colordatabuffer[i] = randdata[i];
+
+		int b, x, rb;
+		for (int y=0; y<h; y++)
+		{
+			rb = ((y+rvoff)%SIRDH)*SIRDW + roff;
+			b = getLineIndex(y);
+			//if (b+w>rlen) b-=rlen;
+			for (x=0; x<SIRDW; x++)
+			{
+				to[b+x] = (x+rb)%rlen;
+			}
+			if (!invert){
+				for (x=SIRDW; x<w; x++)
+					to[b+x] = to[b+x-SIRDW+data[b+x]];
+			} else
+				for (x=SIRDW; x<w; x++)
+					to[b+x] = to[b+x-SIRDW+ZDraw.MAXZ-data[b+x]];
+			for (x=w-1; x>=SIRDW; x--) {
+				int c = color[b+x];
+				int alpha = color[b+x] >>> 24;
+				if (alpha == 0) ;
+				else {
+					alpha++;
+					//from http://www.virtualdub.org/blog/pivot/entry.php?id=117
+					int dst = colordatabuffer[to[b+x]];
+					int srb = c & 0xff00ff;
+					int sg = c & 0x00ff00;
+					int drb = dst & 0xff00ff;
+					int dg = dst & 0x00ff00;
+
+					int orb = (drb + (((srb - drb) * alpha + 0x800080) >> 8)) & 0xff00ff;
+					int og = (dg + (((sg - dg ) * alpha + 0x008000) >> 8)) & 0x00ff00;
+
+					colordatabuffer[to[b+x]] = orb | og;
+				}
+			}
+			for (x=SIRDW; x<w; x++)
+				to[b+x] =  0xff000000 | colordatabuffer[to[b+x]];
+		}
+	}
+
+
+
 	public void drawHeightMapTo(int[] to){
 		drawHeightMapTo(to, false);
 	}
