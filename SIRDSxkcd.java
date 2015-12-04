@@ -50,6 +50,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 	private int COIN_LOWEST_Z;
 	private int mFoundCoins = 0;
 	private Floater mBaseCoinColored;
+	private FloatingObjectGroup mFloatingCoins;
 
 
 	public void start(Object manager, int option){
@@ -80,6 +81,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 		mCoinZDir = 1;
 
 		mBaseCoinColored = mScene.createFloater("xkcd/coincolored.png");
+		mFloatingCoins = new FloatingObjectGroup();
 
 		mTiles = new SceneObjectGroup();
 		mCoins = new SceneObjectGroup();
@@ -87,6 +89,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 			ZSprite coin = mBaseCoin.fastClone();
 			coin.moveTo(coins[i], coins[i+1], (int) mCoinZ);
 			mCoins.setPrimitive(i/2, coin);
+			mFloatingCoins.setFloater(i/2, mBaseCoinColored.fastClone());
 		}
 
 
@@ -95,7 +98,7 @@ public class SIRDSxkcd implements SIRDSlet	{
 		mScene.setPrimitive(0, mTiles);
 		mScene.setPrimitive("board", mHoverBoard);
 		mScene.setPrimitive("coins", mCoins);
-		mScene.setFloater(0, mBaseCoinColored);
+		mScene.floaters.setFloater("coins", mFloatingCoins);
 		mBaseCoinColored.visible = false;
 		mManager.resumeRendering();
                 //new ZSprite(img.getRGB(0,0,img.getWidth(),img.getHeight(), null, 0, img.getWidth()), img.getWidth(),img.getHeight());
@@ -181,20 +184,22 @@ public class SIRDSxkcd implements SIRDSlet	{
 			if (prim.intersect(mHoverBoard,0,0,false)) {
 				mFoundCoins++;
 				mCoins.primitives.remove(i);
+				mFloatingCoins.floaters.remove(i);
 				//Floater floater = mScene.setFloaterText("");
 				//floater.setTim
 				mScene.showFloaterMessage(mFoundCoins+ " coins!").z = ZDraw.MAXZ/2;
-			} else  if (i == 102 && prim.x - mScene.cameraX > 0 && prim.y - mScene.cameraY > 0
+			} else  if (prim.x - mScene.cameraX >= -mBaseCoinColored.w && prim.y - mScene.cameraY >= -mBaseCoinColored.h
 					&& prim.x - mScene.cameraX < mScene.width && prim.y - mScene.cameraY < mScene.height) {
-				mBaseCoinColored.visible = true;
-				mBaseCoinColored.x = prim.x - mScene.cameraX;
-				mBaseCoinColored.y = prim.y - mScene.cameraY;
-				mBaseCoinColored.z = prim.z + (int)COIN_LOWEST_Z;
-			}
+				Floater f = (Floater) mFloatingCoins.getFloater(i);
+				f.visible = true;
+				f.x = prim.x - mScene.cameraX;
+				f.y = prim.y - mScene.cameraY;
+				f.z = prim.z + (int)COIN_LOWEST_Z;
+			} else ( (Floater) mFloatingCoins.getFloater(i)).visible = false;
 		}
 
-		ZSprite prim = (ZSprite) mCoins.primitives.get(102);
-		System.out.println((-mScene.cameraX +prim.x) + " "+(-mScene.cameraY +prim.y)+ " "+prim.y);
+		//ZSprite prim = (ZSprite) mCoins.primitives.get(102);
+		//System.out.println((-mScene.cameraX +prim.x) + " "+(-mScene.cameraY +prim.y)+ " "+prim.y+ "  => "+mBaseCoinColored.y);
 
         //checkCollisions(primitiveId, collisions);
 

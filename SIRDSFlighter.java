@@ -120,6 +120,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mClockSymbols = new ArrayList<Floater>(mTimeWarpPerLevel);
 		for (int i=0;i<mTimeWarpPerLevel;i++){
 			Floater f = mScene.createFloater("flighter/clock.png");
+			f.fadeOutAlphaDelta = 0;
 			f.x=7+25*i;
 			f.y=20;
 			f.z=ZDraw.MAXZ/2;
@@ -203,6 +204,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 		mScene.floaters.removeFloater("border1");
 		mScene.floaters.removeFloater("border2");
 		Floater border = new Floater(mScene.width,2);
+		border.fadeOutAlphaDelta = 0;
 		for (int i=0;i<border.data.length;i++) border.data[i] = 0xff888888;
 		border.y = mZBufferYStart;
 		mScene.floaters.setFloater("border1",border);
@@ -655,10 +657,11 @@ public class SIRDSFlighter implements SIRDSlet	{
 	private void updateLifeProgressBar(){
 		Floater life=(Floater) mScene.floaters.getFloater("life");
 		if (life==null) {
-			life=mScene.floaters.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
+			life=(Floater) mScene.floaters.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
 			life.x=5;
 			life.y=5;
 			life.z=ZDraw.MAXZ/2;
+			life.fadeOutAlphaDelta=0;
 		}
 
 		int padding=1;

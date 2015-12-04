@@ -122,11 +122,13 @@ public class SceneManager extends SceneObjectGroup {
 	}
 	public Floater createTextFloater(String text, Color foregroundColor){
 		Floater floater=new Floater();
+		floater.fadeOutAlphaDelta = 0;
 		floater.setToString(text, mFontMetrics, foregroundColor);
 		return floater;
 	}
 	public Floater createTextFloater(String text, int backgroundColor){
 		Floater floater=new Floater();
+		floater.fadeOutAlphaDelta = 0;
 		floater.setToString(text, mFontMetrics, Color.BLACK);
 		floater.mergeColor(backgroundColor);
 		return floater;
@@ -136,7 +138,7 @@ public class SceneManager extends SceneObjectGroup {
 	public Floater setFloaterText(String id, String text){
 		Floater newText=createTextFloater(text);
 		FloatingObject old=floaters.getFloater(id);
-		if (old==null || !(old instanceof Floater)) return floaters.setFloater(id, newText);
+		if (old==null || !(old instanceof Floater)) return (Floater) floaters.setFloater(id, newText);
 		else {
 			((Floater)old).assignNoCopy(newText);
 			return (Floater)old;
@@ -154,13 +156,14 @@ public class SceneManager extends SceneObjectGroup {
 	}
 	public Floater showFloaterMessage(String message, MessageType type){
 		TimedFloater f = new TimedFloater();
+		f.fadeOutAlphaDelta = 0;
 		int color=0xffddddcc;
 		if (type == MessageType.MESSAGE_ERROR || type==MessageType.MESSAGE_FATAL) color=0xffff0000;
 		f.setToString(message, mFontMetrics, Color.BLACK);
 		f.mergeColor(color);
 		f.y=(height-f.h)/2;
 		f.timetolive=5*1000;
-		return floaters.setFloater("~message",f);
+		return (Floater) floaters.setFloater("~message",f);
 		      /*
 		if (!false){
 			System.out.println(type+": "+message);

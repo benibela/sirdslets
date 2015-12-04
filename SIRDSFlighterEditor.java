@@ -30,7 +30,7 @@ public class SIRDSFlighterEditor extends SIRDSFlighter{
 		int lh=f.h;
 		mScene.setFloaterText("scroll","scroll: 0", 0xffddddcc).y=lh;
 		mScene.setFloaterText("cursel","cursel: -1", 0xffddddcc).y=2*lh;
-		mScene.getFloater("life").visible=false;
+		((Floater) mScene.floaters.getFloater("life")).visible=false;
 
 		mEditedMoverPositions = new ArrayList<ScenePrimitive>();
 

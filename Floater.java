@@ -5,6 +5,7 @@ public class Floater extends IntArrayImage implements FloatingObject {
 	public int x,y,z;
 	public boolean visible=true;//, alphaTransparent; 
 	public boolean ignoreHeightmap=true;
+	public int fadeOutAlphaDelta=35;
 
 	Floater(){
 		setSize(0, 0);
@@ -20,6 +21,7 @@ public class Floater extends IntArrayImage implements FloatingObject {
 		f.z = z;
 		f.visible = visible;
 		f.ignoreHeightmap = ignoreHeightmap;
+		f.fadeOutAlphaDelta = fadeOutAlphaDelta;
 		f.data=data;
 		f.w = w;
 		f.h = h;
@@ -39,29 +41,39 @@ public class Floater extends IntArrayImage implements FloatingObject {
 		int SIRDW=ZDraw.SIRDW;
 		//if (w>SIRDW)
 		//	throw new IllegalArgumentException("floater width to large");
+		//distance between floater copies on height z: SIRDW - z
 		for (int cy=0;cy<h;cy++){
 			if (y+cy<0) continue;
 			if (y+cy>=output.h) break;
 			int b=output.getLineIndex(y+cy);
 			int bd=getLineIndex(cy);
 			int offset=(x+z) % (SIRDW -z);
-			int cx=-offset;
+			int cx=-offset; //output x position
+
+			final int alpha_decay = fadeOutAlphaDelta;
+			int decreasingAlpha = alpha_decay * (x+z) / (SIRDW-z);
+			int decreasingAlphaCapped = Math.max(decreasingAlpha, 0);
+
 			while(cx+offset<output.w){
 				//to[b+cx] = data[bd+cx];
-				int o=output.data[b+cx+offset];
-				int ncx = (SIRDW+cx) % (SIRDW-z);
+				int ncx = (SIRDW+cx) % (SIRDW-z); //x position in floater data
 				if (ncx>=w) {
 					cx=cx+(SIRDW-z)-ncx;
+					if (cx < x) decreasingAlpha -= alpha_decay;
+					else decreasingAlpha += alpha_decay;
+					decreasingAlphaCapped = Math.max(decreasingAlpha, 0);
 					continue;
 				}
+				int o=output.data[b+cx+offset];
 				int n=data[bd+ncx];
-				int alpha=n>>>24;
-				int malpha=0xff - alpha;
-				if (ignoreHeightmap || output.data[b+cx+offset]<=z)
-				output.data[b+cx+offset] = 0xff000000 
-						   | (((malpha * ((o>>>16) & 0xff) + alpha*((n>>>16) & 0xff)) / 0xff) << 16)
-						   | (((malpha * ((o>>>8)  & 0xff) + alpha*((n>>> 8) & 0xff)) / 0xff) << 8)
-						   |  ((malpha * (o       & 0xff) + alpha*(n       & 0xff)) / 0xff);
+				int alpha=(n>>>24) - decreasingAlphaCapped;
+				if (alpha > 0 && (ignoreHeightmap || output.data[b+cx+offset]<=z) ) {
+					int malpha=0xff - alpha;
+					output.data[b+cx+offset] = 0xff000000
+							   | (((malpha * ((o>>>16) & 0xff) + alpha*((n>>>16) & 0xff)) / 0xff) << 16)
+							   | (((malpha * ((o>>>8)  & 0xff) + alpha*((n>>> 8) & 0xff)) / 0xff) << 8)
+							   |  ((malpha * (o       & 0xff) + alpha*(n       & 0xff)) / 0xff);
+				}
 				cx++;
 			}
 		}

@@ -37,9 +37,9 @@ public class FloatingObjectGroup implements FloatingObject {
 	@Override
 	public void drawSimple(IntArrayImage output) {
 		for (FloatingObject f: floaters)
-			f.draw(output);
+			f.drawSimple(output);
 		for (Map.Entry<String,FloatingObject> it : namedFloaters.entrySet())
-			it.getValue().draw(output);
+			it.getValue().drawSimple(output);
 	}
 
 
@@ -51,7 +51,7 @@ public class FloatingObjectGroup implements FloatingObject {
 		if (id<0 || id>=floaters.size()) return null;
 		return floaters.get(id);
 	}
-	public Floater setFloater(int id, Floater f){
+	public FloatingObject setFloater(int id, FloatingObject f){
 		if (id>=floaters.size()) floaters.add(f);
 		else floaters.set(id,f);
 		return f;
@@ -63,7 +63,7 @@ public class FloatingObjectGroup implements FloatingObject {
 	public FloatingObject getFloater(String id){
 		return namedFloaters.get(id);
 	}
-	public Floater setFloater(String id, Floater f){
+	public FloatingObject setFloater(String id, FloatingObject f){
 		namedFloaters.put(id,f);
 		return f;
 	}
