@@ -200,20 +200,20 @@ public class SIRDSFlighter implements SIRDSlet	{
 		if (level == 6 && mDifficulty>=DIFF_NORMAL) mMinimalRequiredLife = mInitialLife*50/100; //UGLY hack: level 6 is not impossible to play if the game is too strict
 		mManager.suspendRendering();
 		mScene.clear();
-		mScene.removeFloater("border1");
-		mScene.removeFloater("border2");
+		mScene.floaters.removeFloater("border1");
+		mScene.floaters.removeFloater("border2");
 		Floater border = new Floater(mScene.width,2);
 		for (int i=0;i<border.data.length;i++) border.data[i] = 0xff888888;
 		border.y = mZBufferYStart;
-		mScene.setFloater("border1",border);
+		mScene.floaters.setFloater("border1",border);
 		border = border.fastClone();
 		border.y = mZBufferYStart + mZBufferH;
-		mScene.setFloater("border2", border);
+		mScene.floaters.setFloater("border2", border);
 
 
-		mScene.removeFloater("zerror");
+		mScene.floaters.removeFloater("zerror");
 		for (int i=0;i<mTimeWarpPerLevel;i++) {
-			mScene.setFloater("clock"+i, mClockSymbols.get(i));
+			mScene.floaters.setFloater("clock"+i, mClockSymbols.get(i));
 			mClockSymbols.get(i).visible = true;
 		}
 		//reset ship position
@@ -345,7 +345,7 @@ public class SIRDSFlighter implements SIRDSlet	{
 					mShipHistoryPos=-1;
 					mShipHistory.clear();
 					mTimeWarpActive=false;
-					mScene.removeFloater("clock"+mRemainingTimeWarps);
+					mScene.floaters.removeFloater("clock"+mRemainingTimeWarps);
 				}
 				updateLifeProgressBar();
 				mScene.setCameraPosition((int)(-mShipData.levelScroll), -(mScene.height-mZBufferH)/2, 0);
@@ -653,9 +653,9 @@ public class SIRDSFlighter implements SIRDSlet	{
 	}
 
 	private void updateLifeProgressBar(){
-		Floater life=mScene.getFloater("life");
+		Floater life=(Floater) mScene.floaters.getFloater("life");
 		if (life==null) {
-			life=mScene.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
+			life=mScene.floaters.setFloater("life",new Floater(ZDraw.SIRDW-ZDraw.MAXZ-10,10));
 			life.x=5;
 			life.y=5;
 			life.z=ZDraw.MAXZ/2;

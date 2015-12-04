@@ -78,7 +78,7 @@ public class AbSIRDlet implements SIRDSlet
 		f=mScene.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
 		f.y=4*lineHeight;
 
-		mScene.setFloater("apenmouse",new Floater(2*mDrawRadius,2*mDrawRadius));
+		mScene.floaters.setFloater("apenmouse",new Floater(2*mDrawRadius,2*mDrawRadius));
 		updatePenInformation();
 		//f.ignoreHeightmap=false;
 	}
@@ -132,7 +132,7 @@ public class AbSIRDlet implements SIRDSlet
 
 	private void updatePenInformation(){
 		mScene.setFloaterText("pen","pen-size: "+mDrawRadius,0xffddddcc);
-		Floater f=mScene.getFloater("apenmouse");
+		Floater f=(Floater)mScene.floaters.getFloater("apenmouse");
 		if (2*mDrawRadius>=mZBuffer.SIRDW) return;
  		if (f.w<2*mDrawRadius || f.h<2*mDrawRadius) f.setSize(2*mDrawRadius,2*mDrawRadius);
 		f.clear();
@@ -144,7 +144,7 @@ public class AbSIRDlet implements SIRDSlet
 		mScene.setFloaterText("ypos", "y: "+mCurMY,0xffddddcc);
 		mScene.setFloaterText("zpos","z: "+ mCurrentZ,0xffddddcc);
 		mManager.setFloaterCursorZ(mCurrentZ+3);
-		Floater mf=mScene.getFloater("apenmouse");
+		Floater mf=(Floater) mScene.floaters.getFloater("apenmouse");
 		mf.x=mCurMX-mf.w/2;
 		mf.y=mCurMY-mf.h/2;
 		mf.z=mCurrentZ;

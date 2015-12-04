@@ -1,7 +1,7 @@
 import java.awt.*; //images
 import java.awt.image.*; //images
 
-public class Floater extends IntArrayImage{
+public class Floater extends IntArrayImage implements FloatingObject {
 	public int x,y,z;
 	public boolean visible=true;//, alphaTransparent; 
 	public boolean ignoreHeightmap=true;

@@ -105,16 +105,8 @@ public class RendererSoftware implements SIRDSRenderer{
 			mZBuffer.forceCopyDataFrom(0,0,mZBuffer2,0,0,mZBuffer2.w,mZBuffer2.h);
 
 		}*/
-
-		for (Floater f: mScene.floaters){
-			if (drawSIRDS) f.draw(mSIRDPixels);
-			else f.drawSimple(mSIRDPixels);
-		}
-
-		for (Map.Entry<String,Floater> it : mScene.namedFloaters.entrySet()){
-			if (drawSIRDS) it.getValue().draw(mSIRDPixels);
-			else it.getValue().drawSimple(mSIRDPixels);
-		}
+		if (drawSIRDS) mScene.floaters.draw(mSIRDPixels);
+		else mScene.floaters.drawSimple(mSIRDPixels);
 
 		mSIRDImage.newPixels();
 		

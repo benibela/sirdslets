@@ -790,7 +790,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		if (mShowFloaterCursor==showMouse) return;
 		mShowFloaterCursor=showMouse;
 		if (mShowFloaterCursor) {
-			scene.setFloater("~floaterCursor",scene.createFloater("mouse.png"));
+			scene.floaters.setFloater("~floaterCursor",scene.createFloater("mouse.png"));
 			try{
 				Cursor c = getToolkit().createCustomCursor(
 					new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
@@ -800,13 +800,13 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 				System.out.println("Couldn't set cursor (error catched):"+e);
 			}
 		} else {
-			scene.removeFloater("~floaterCursor");
+			scene.floaters.removeFloater("~floaterCursor");
 		}
 	}
 
 	public void setFloaterCursorZ(int mouseZ){
 		if (!mShowFloaterCursor) return;
-		Floater f = scene.getFloater("~floaterCursor");
+		Floater f =  (Floater)scene.floaters.getFloater("~floaterCursor");
 		//don't check, cursor movements in higher level could be useful
 //		if (mouseZ<0) mouseZ=0;
 //		if (mouseZ>ZDraw.MAXZ) mouseZ=ZDraw.MAXZ;
@@ -814,13 +814,13 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 	}
 	public int getFloaterCursorZ(){
 		if (!mShowFloaterCursor) return -1;
-		Floater f = scene.getFloater("~floaterCursor");
+		Floater f = (Floater)scene.floaters.getFloater("~floaterCursor");
 		if (f==null) return -1;
 		return f.z;
 	}
 	public Floater getFloaterCursor(){
 		if (!mShowFloaterCursor) return null;
-		return scene.getFloater("~floaterCursor");
+		return (Floater)scene.floaters.getFloater("~floaterCursor");
 	}
 	
 	public SceneManager getSceneManager() {
@@ -985,7 +985,7 @@ public class SIRDSAppletManager extends JApplet implements Runnable,  KeyListene
 		mMouseY=e.getY();
 
 		if (!mShowFloaterCursor) return;
-		Floater f = scene.getFloater("~floaterCursor");
+		Floater f = (Floater)scene.floaters.getFloater("~floaterCursor");
 		f.x=e.getX();
 		f.y=e.getY();
 	}

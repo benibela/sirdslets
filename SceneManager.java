@@ -20,27 +20,23 @@ public class SceneManager extends SceneObjectGroup {
 
 	public void clear(){
 		super.clear();
+		floaters.clear();
 		cameraX=0;
 		cameraY=0;
 		cameraZ=0;
+		mModifiers.clear();
+
 //		mZBuffer.clear();
 		/*Iterator<String> it = namedPrimitives.keySet().iterator();
 		while (it.hasNext())
 			if (!it.next().startsWith("~"))
 				it.remove();*/
-		floaters.clear();
-		//namedFloaters.clear();
-		mModifiers.clear();
-		Iterator<String> it = namedFloaters.keySet().iterator();
-		while (it.hasNext())
-			if (!it.next().startsWith("~"))
-				it.remove();
 	}
 
 	public void calculateFrame(double timePerFrame){
-		Iterator<Map.Entry<String,Floater>> it = namedFloaters.entrySet().iterator();
+		Iterator<Map.Entry<String,FloatingObject>> it = floaters.namedFloaters.entrySet().iterator();
 		while (it.hasNext()) {
-			Map.Entry<String,Floater> pairs = it.next();
+			Map.Entry<String,FloatingObject> pairs = it.next();
 			if (pairs.getValue() instanceof TimedFloater){
 				TimedFloater tf=(TimedFloater)pairs.getValue();
 				tf.timetolive-=timePerFrame;
@@ -70,47 +66,8 @@ public class SceneManager extends SceneObjectGroup {
 
 
 //===================Overlays/Floater============================
-	/*protected*/ public  ArrayList<Floater> floaters = new ArrayList<Floater>();
-	/*protected*/ public  TreeMap<String,Floater> namedFloaters = new TreeMap<String,Floater>();
+	public  FloatingObjectGroup floaters = new FloatingObjectGroup();
 
-//Base
-	public void removeFloater(int id){
-		floaters.remove(id);
-	}
-	public Floater getFloater(int id){
-		if (id<0 || id>=floaters.size()) return null;
-		return floaters.get(id);
-	}
-	public Floater setFloater(int id, Floater f){
-		if (id>=floaters.size()) floaters.add(f);
-		else floaters.set(id,f);
-		return f;
-	}
-
-	public void removeFloater(String id){
-		namedFloaters.remove(id);
-	}
-	public Floater getFloater(String id){
-		return namedFloaters.get(id);
-	}
-	public Floater setFloater(String id, Floater f){
-		namedFloaters.put(id,f);
-		return f;
-	}
-
-//Utility
-	public Floater setFloaterText(String id, String text){
-		Floater newText=createTextFloater(text);
-		Floater old=getFloater(id);
-		if (old==null) return setFloater(id, newText);
-		else old.assignNoCopy(newText);
-		return old;
-	}
-	public Floater setFloaterText(String id, String text, int backgroundColor){
-		Floater f=setFloaterText(id, text);
-		f.mergeColor(backgroundColor);
-		return f;
-	}
 
 	//Graphic Utility Functions
 	public int[] loadImageData(String name){
@@ -175,6 +132,22 @@ public class SceneManager extends SceneObjectGroup {
 		return floater;
 	}
 
+	//Utility
+	public Floater setFloaterText(String id, String text){
+		Floater newText=createTextFloater(text);
+		FloatingObject old=floaters.getFloater(id);
+		if (old==null || !(old instanceof Floater)) return floaters.setFloater(id, newText);
+		else {
+			((Floater)old).assignNoCopy(newText);
+			return (Floater)old;
+		}
+	}
+	public Floater setFloaterText(String id, String text, int backgroundColor){
+		Floater f=setFloaterText(id, text);
+		f.mergeColor(backgroundColor);
+		return f;
+	}
+
 
 	public Floater showFloaterMessage(String message){
 		return showFloaterMessage(message, MessageType.MESSAGE_NOTIFY);
@@ -187,7 +160,7 @@ public class SceneManager extends SceneObjectGroup {
 		f.mergeColor(color);
 		f.y=(height-f.h)/2;
 		f.timetolive=5*1000;
-		return setFloater("~message",f);
+		return floaters.setFloater("~message",f);
 		      /*
 		if (!false){
 			System.out.println(type+": "+message);
