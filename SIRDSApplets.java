@@ -16,8 +16,9 @@ public class SIRDSApplets extends SIRDSAppletManager
 	@Override
 	public void init()
 	{
-		if (Locale.getDefault() == Locale.GERMAN || Locale.getDefault() == Locale.GERMANY )
-			Translations.setInstance(new Translations_DE());
+		if (Locale.getDefault() != null)
+			if (Locale.getDefault().equals(Locale.GERMAN) || Locale.getDefault().equals(Locale.GERMANY) )
+				Translations.setInstance(new Translations_DE());
 		registerSIRDSlet(new SIRDSFlighter());
 		registerSIRDSlet(new SIRDSxkcd());
 		registerSIRDSlet(new AbSIRDlet());

@@ -8,13 +8,9 @@
  * @author benito
  */
 public class Translations_DE extends Translations{
-	public static Translations getInstance(){
-		return mInstance==null?new Translations():mInstance;
+	Translations_DE(){
+		mSIRDSXkcd = new SIRDSxkcd();
 	}
-	public static void setInstance(Translations instance){
-		mInstance = instance;
-	}
-	private static Translations mInstance = null;
 	public String random(){return "zufällig";}
 	public String colored(){ return "bunt";}
 	public String stripes(){ return "stripes";}
@@ -102,5 +98,13 @@ public class Translations_DE extends Translations{
 			"d,f\tPinselstärke\n" +
 			"mouse\tmalen/Abstand auswählen";
 	}
+
+	public static class SIRDSxkcd extends Translations.SIRDSxkcd {
+		public String name() { return "SIRDSifiziertes XKCD"; }
+		public String desc() { return "Zeigt XKCDs Welten als SIRD."; }
+		public String keys() { return "Pfeiltasten\tBewegt das Hoverboard."; }
+
+	}
+
 }
 

@@ -2,7 +2,7 @@
 
 MKDIR = mkdir
 #JAVAC = javac  -Xlint:deprecation -d output
-JAVAC = javac  -d output
+JAVAC = javac -encoding UTF-8 -d output
 
 CLASSES = AbSIRDlet AccurateTiming Cuboid Floater FloatingObjectGroup IntArrayImage IntersectionUtils JSONReader JSONSerializable JSONWriter PrimitiveAnimator PrimitiveMarker PrimitiveModifier PrimitiveMover PrimitiveScaler RendererSoftware SceneManager SceneObjectGroup SceneObject ScenePrimitive SIRDSAppletManager SIRDSApplets SIRDSFlighterEditor SIRDSFlighter SIRDSlet SIRDSRenderer SIRDSxkcd SPonglet Translations_DE Translations Vector3d Vector3i ZDraw ZSprite ZSpriteRepeater
 

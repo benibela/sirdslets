@@ -112,11 +112,11 @@ public class Translations {
 
     public static class SIRDSxkcd {
         public String name() { return "SIRDSified XKCD"; }
-        public String desc() { return name(); }
-		public String keys() { return "Arrow keys"; }
+        public String desc() { return "Shows XKCD's large scenes as SIRD."; }
+		public String keys() { return "Arrow keys\tMove the hover board."; }
 
     }
-    private SIRDSxkcd mSIRDSXkcd;
+    protected SIRDSxkcd mSIRDSXkcd;
     public static SIRDSxkcd getSIRDSxkcd(){
         return getInstance().mSIRDSXkcd;
     }
