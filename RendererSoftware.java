@@ -13,6 +13,8 @@ public class RendererSoftware implements SIRDSRenderer{
 	private MemoryImageSource mSIRDImage;
 
 	private boolean mInvert, mRandomFlicker;
+
+	private final boolean USE_COLOR_BUFFER = false;
 	int mDrawMode;
 
 	int sis1[];
@@ -38,8 +40,10 @@ public class RendererSoftware implements SIRDSRenderer{
 
 		mZBuffer = new ZDraw(mScene.width, mScene.height);
 		mZBuffer.clear();
-		mColorBuffer = new ZDraw(mScene.width, mScene.height);
-		mColorBuffer.clear();
+		if (USE_COLOR_BUFFER) {
+			mColorBuffer = new ZDraw(mScene.width, mScene.height);
+			mColorBuffer.clear();
+		}
 
 		mFrameNumber=0;
 	}
@@ -57,13 +61,13 @@ public class RendererSoftware implements SIRDSRenderer{
 		if (f1 == null) return;
 		sis1=f1;
 		sis2=(f2==null)?f1:f2;
-		System.out.println("ß?");
-		System.out.println(sis1);
-		if (h < mScene.height) {
-			sis1 = enlarge(sis1, (mScene.height + h-1) / h);
-			sis2 = enlarge(sis2, (mScene.height + h-1) / h);
+		if (USE_COLOR_BUFFER) {
+			if (h < mScene.height) {
+				sis1 = enlarge(sis1, (mScene.height + h-1) / h);
+				sis2 = enlarge(sis2, (mScene.height + h-1) / h);
+			}
+			sisTemp = new int[Math.max(sis1.length, sis2.length)];
 		}
-		sisTemp = new int[Math.max(sis1.length, sis2.length)];
 	}
 	public void setRandomMode(boolean randomFlicker){
 		mRandomFlicker=randomFlicker;
@@ -78,27 +82,26 @@ public class RendererSoftware implements SIRDSRenderer{
 		return mDrawMode;
 	}
 
-
-	private void renderPrimitive(ScenePrimitive p){
-		//p.drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
-		p.drawTo(mZBuffer, mColorBuffer, -mScene.cameraX, -mScene.cameraY);
-	}
 	public void renderFrame(){
 		boolean drawSIRDS=(mDrawMode == 1) && sis1!=null && sis2!=null;
 		mZBuffer.clear();
-		mColorBuffer.clear();
+		if (USE_COLOR_BUFFER) {
+			mColorBuffer.clear();
+			mScene.drawTo(mZBuffer, mColorBuffer, -mScene.cameraX, -mScene.cameraY);
+		} else
+			mScene.drawTo(mZBuffer, -mScene.cameraX, -mScene.cameraY);
 
-		renderPrimitive(mScene);
 
 		if (!drawSIRDS){
 			if (mDrawMode == 0) mZBuffer.drawHeightMapTo(mSIRDPixels.data, mInvert);
 			else if (mDrawMode == 3) mZBuffer.drawRainbowMapTo(mSIRDPixels.data, mInvert);
 			else mZBuffer.drawAnaglyph(mSIRDPixels.data, mInvert);
-		} else {
-			/*if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, sis2, mRandomFlicker, mInvert);
-			else mZBuffer.DrawSIRD(mSIRDPixels.data, sis1, mRandomFlicker, mInvert);*/
+		} else if (USE_COLOR_BUFFER){
 			if ((mFrameNumber &1)!=0) mZBuffer.DrawColoredSIRD(mSIRDPixels.data, mColorBuffer.data, sis2, sisTemp, mRandomFlicker, mInvert);
 			else mZBuffer.DrawColoredSIRD(mSIRDPixels.data, mColorBuffer.data, sis1, sisTemp, mRandomFlicker, mInvert);
+		} else {
+			if ((mFrameNumber &1)!=0) mZBuffer.DrawSIRD(mSIRDPixels.data, sis2, mRandomFlicker, mInvert);
+			else mZBuffer.DrawSIRD(mSIRDPixels.data, sis1, mRandomFlicker, mInvert);
 		}
 	/*
 		if (mUseZBuffer2) {
