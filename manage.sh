@@ -10,6 +10,12 @@ case "$1" in
 mirror)
   syncHg  
 ;;
+release) 
+  jar cf sirdslets.jar -C output .
+  echo password | jarsigner -keystore keystore.password.jks -tsa https://tsa.safecreative.org/ sirdslets.jar selfsigned
+  $HGROOT/sites/web5/upload.sh sirdslets.jar output/sirdslet_page.html bin/games/sirdslets/
+  syncHg  
+;;
 
 esac
 
